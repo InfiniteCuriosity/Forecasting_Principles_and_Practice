@@ -1,0 +1,88 @@
+---
+title: "2. Time Series Graphics.RMD"
+author: "Russ Conte"
+date: "10/2/2021"
+output: html_document
+---
+
+# 2. Time Series Graphics
+
+## 2.1 `tsibble` objects
+
+How to create a `tsibble`:
+
+```{r 2.1 Creating a tsibble}
+library(fpp3)
+y <- tsibble(
+  Year = 2015:2019,
+  Observation  = c(123, 39, 78, 52, 110),
+  index = Year
+)
+
+y
+```
+
+For observations that are more frequent than once per year, we need to use a time class function on the index. For example:
+
+```{r Key bariables}
+olympic_running
+
+```
+
+he 14 time series in this object are uniquely identified by the keys: the `Length` and `Sex` variables. The `distinct()` function can be used to show the categories of each variable or even combinations of variables:
+
+```{r Using the distinct function to show categories of each variable}
+olympic_running %>% distinct(Sex)
+```
+
+## Working with tsibble objects
+
+We can use dplyr functions such as `mutate()`, `filter()`, `select()` and `summarise()` to work with `tsibble` objects.
+
+```{r Look at the PBS data set}
+PBS
+```
+
+Filter the dataset to extract the A10 scripts:
+
+```{r Filter the dataset to extract the A10 scripts}
+a10 <- PBS %>% filter(ATC2 == "A10")
+a10
+```
+
+Select the columns we need in our analysis:
+
+```{r Select the columns we need in our analysis}
+a10 <- a10 %>% select(Month, Concession, Type, Cost)
+a10
+
+```
+
+Summarise allows us to combine data across keys:
+
+```{r example of summarise}
+a10 <- a10 %>% summarise(TotalCost = sum(Cost))
+a10
+```
+
+Create new variables using the `mutate` function:
+
+```{r}
+a10 <- a10 %>% mutate(TotalCost = TotalCost / 1e6)
+a10
+```
+
+## Read a CSV file and convert to a table:
+
+```{r Read a CSV file and convert to a table}
+prison <- readr::read_csv('https://OTexts.com/fpp3/extrafiles/prison_population.csv')
+
+prison <- prison %>% 
+  mutate(Quarter = yearquarter(Date)) %>% 
+  select(-Date) %>% 
+  as_tsibble(key = c(State, Gender, Legal, Indigenous),
+             index = Quarter)
+prison
+
+```
+
