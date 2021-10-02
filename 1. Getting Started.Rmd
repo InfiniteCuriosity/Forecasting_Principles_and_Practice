@@ -1,0 +1,80 @@
+---
+title: "1. Getting Started.RMD"
+author: "Russ Conte"
+date: "10/2/2021"
+output: html_document
+---
+
+# 1.1 What can be forecast?
+
+The predictability of an event or a quantity depends on several factors including:
+
+how well we understand the factors that contribute to it;
+how much data is available;
+how similar the future is to the past;
+whether the forecasts can affect the thing we are trying to forecast.
+
+Forecasts rarely assume that the environment is unchanging. What is normally assumed is that <i>the way in which the environment is changing will continue into the future.</i> That is, <b>a highly volatile environment will continue to be highly volatile; a business with fluctuating sales will continue to have fluctuating sales; and an economy that has gone through booms and busts will continue to go through booms and busts.</b> A forecasting model is intended to capture the way things move, not just where things are.
+
+# 1.2 Forecasting, goals, and planning
+
+Forecasting is a common statistical task in business, where it helps to inform decisions about the scheduling of production, transportation and personnel, and provides a guide to long-term strategic planning. However, business forecasting is often done poorly, and is frequently confused with planning and goals. They are three different things.
+
+<span style = "color:blue"><b>Forecasting</b></span> is about predicting the future as accurately as possible, given all of the information available, including historical data and knowledge of any future events that might impact the forecasts.
+
+<span style = "color:blue"><b>Goals</b></span>
+are what you would like to have happen. Goals should be linked to forecasts and plans, but this does not always occur. Too often, goals are set without any plan for how to achieve them, and no forecasts for whether they are realistic.<br><br>
+<span style = "color:blue"><b>Planning</b></span>
+is a response to forecasts and goals. Planning involves determining the appropriate actions that are required to make your forecasts match your goals.<br>
+
+Forecasting should be an integral part of the decision-making activities of management, as it can play an important role in many areas of a company. Modern organisations require short-term, medium-term and long-term forecasts, depending on the specific application.<br>
+<br>
+<span style = "color:blue"><b>Short-term forecasts</b></span>
+are needed for the scheduling of personnel, production and transportation. As part of the scheduling process, forecasts of demand are often also required.<br><br>
+<span style = "color:blue"><b>Medium-term forecasts</b></span>
+are needed to determine future resource requirements, in order to purchase raw materials, hire personnel, or buy machinery and equipment.<br><br>
+<span style = "color:blue"><b>Long-term forecasts</b></span>
+are used in strategic planning. Such decisions must take account of market opportunities, environmental factors and internal resources.
+
+# 1.3 Determining what to forecast
+
+Once it has been determined what forecasts are required, it is then necessary to find or collect the data on which the forecasts will be based. The data required for forecasting may already exist. These days, a lot of data are recorded, and the forecaster’s task is often to identify where and how the required data are stored. The data may include sales records of a company, the historical demand for a product, or the unemployment rate for a geographic region. A large part of a forecaster’s time can be spent in locating and collating the available data prior to developing suitable forecasting methods.
+
+# 1.4 Forecasting data and methods
+
+<b>Predictor variables and time series forecasting</b>
+
+Predictor variables are often useful in time series forecasting. For example, suppose we wish to forecast the hourly electricity demand (ED) of a hot region during the summer period. A model with predictor variables might be of the form
+ED = <i>f</i>(current temperature, strength of economy, population,
+time of day, day of week, error).
+
+We call this an <b>explanatory model</b> because it helps explain what causes the variation in electricity demand.
+
+Because the electricity demand data form a time series, we could also use a time series model for forecasting. In this case, a suitable time series forecasting equation is of the form
+
+$$ED_{t+1} = f(ED_t, ED_{t-1}, ED_{t-2}, ED_{t-3},..., error)$$
+
+Here, prediction of the future is based on past values of a variable, but not on external variables that may affect the system.
+
+There is also a third type of model which combines the features of the above two models. For example, it might be given by
+
+$$ED_{t+1} = f(ED_t, \textrm{current temperature, time of day, day of week, error)}$$
+
+An explanatory model is useful because it incorporates information about other variables, rather than only historical values of the variable to be forecast. However, there are several reasons a forecaster might select a time series model rather than an explanatory or mixed model. First, the system may not be understood, and even if it was understood it may be extremely difficult to measure the relationships that are assumed to govern its behaviour. Second, it is necessary to know or forecast the future values of the various predictors in order to be able to forecast the variable of interest, and this may be too difficult. Third, the main concern may be only to predict what will happen, not to know why it happens. Finally, the time series model may give more accurate forecasts than an explanatory or mixed model.
+
+# 1.6 The basic steps in a forecasting task
+
+A forecasting task usually involves five basic steps.
+
+<span style = "color:blue"><b>Step 1: Problem definition </b></span>Step 1: Problem definition. </span>
+Often this is the most difficult part of forecasting. Defining the problem carefully requires an understanding of the way the forecasts will be used, who requires the forecasts, and how the forecasting function fits within the organisation requiring the forecasts. A forecaster needs to spend time talking to everyone who will be involved in collecting data, maintaining databases, and using the forecasts for future planning.<br>
+<span style = "color:blue"><b>Step 2: Gathering information </b></span>Step 2: Gathering information.</span>
+There are always at least two kinds of information required: (a) statistical data, and (b) the accumulated expertise of the people who collect the data and use the forecasts. Often, it will be difficult to obtain enough historical data to be able to fit a good statistical model. In that case, the judgmental forecasting methods of Chapter 6 can be used. Occasionally, old data will be less useful due to structural changes in the system being forecast; then we may choose to use only the most recent data. However, remember that good statistical models will handle evolutionary changes in the system; don’t throw away good data unnecessarily.<br>
+<span style = "color:blue"><b>Step 3: Preliminary (exploratory) analysis  </b></span>Step 3: Preliminary (exploratory) analysis.</span>
+Always start by graphing the data. Are there consistent patterns? Is there a significant trend? Is seasonality important? Is there evidence of the presence of business cycles? Are there any outliers in the data that need to be explained by those with expert knowledge? How strong are the relationships among the variables available for analysis? Various tools have been developed to help with this analysis. These are discussed in Chapters 2 and 3.<br>
+<span style = "color:blue"><b>Step 4: Choosing and fitting models </b></span>Step 4: Choosing and fitting models.</span>
+The best model to use depends on the availability of historical data, the strength of relationships between the forecast variable and any explanatory variables, and the way in which the forecasts are to be used. It is common to compare two or three potential models. Each model is itself an artificial construct that is based on a set of assumptions (explicit and implicit) and usually involves one or more parameters which must be estimated using the known historical data. We will discuss regression models (Chapter 7), exponential smoothing methods (Chapter 8), Box-Jenkins ARIMA models (Chapter 9), Dynamic regression models (Chapter 10), Hierarchical forecasting (Chapter 11), and several advanced methods including neural networks and vector autoregression (Chapter 12).<br>
+<span style = "color:blue"><b>Step 5: Using and evaluating a forecasting model </b></span>Step 5: Using and evaluating a forecasting model.</span><br>
+Once a model has been selected and its parameters estimated, the model is used to make forecasts. The performance of the model can only be properly evaluated after the data for the forecast period have become available. A number of methods have been developed to help in assessing the accuracy of forecasts. There are also organisational issues in using and acting on the forecasts. A brief discussion of some of these issues is given in Chapter 5. When using a forecasting model in practice, numerous practical issues arise such as how to handle missing values and outliers, or how to deal with short time series. These are discussed in Chapter 13.
+
+#1.7 The statistical forecasting perspective
