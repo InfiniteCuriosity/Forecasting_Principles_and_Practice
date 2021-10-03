@@ -1,0 +1,49 @@
+---
+title: "4. Time Series Features.RMD"
+author: "Russ Conte"
+date: "10/3/2021"
+output: html_document
+---
+
+The `feasts` package includes functions for computing FEatures And Statistics from Time Series (hence the name).
+
+We can compute many different features on many different time series, and use them to explore the properties of the series. In this chapter we will look at some features that have been found useful in time series exploration, and how they can be used to uncover interesting information about your data. We will use Australian quarterly tourism as a running example.
+
+## 4.1 Some simple statistics
+
+Any numerical summary computed from a time series is a feature of that time series — the mean, minimum or maximum, for example. These can be computed using the features() function. For example, let’s compute the means of all the series in the Australian tourism data.
+
+```{r Compute the mean of visits for all the series for the Australian tourism data}
+library(fpp3)
+library(tidyverse)
+tourism %>% 
+  features(Trips, list(mean = mean)) %>% 
+  arrange(desc(mean))
+```
+
+Rather than compute one feature at a time, it is convenient to compute many features at once. A common short summary of a data set is to compute five summary statistics: the minimum, first quartile, median, third quartile and maximum. These divide the data into four equal-size sections, each containing 25% of the data. The quantile() function can be used to compute them.
+
+```{r Compute and present quantiles: Minimum, first quartile, median, third quartile, and maximum}
+tourism %>% features(Trips, quantile)
+```
+
+## 4.2 Autocorrelation (ACF) Features
+
+We discuss differencing of time series in more detail in Section 9.1.
+
+The `feat_acf()` function computes a selection of the autocorrelations discussed here. It will return six or seven features:
+
+• the first autocorrelation coefficient from the original data;
+• the sum of squares of the first ten autocorrelation coefficients from the original data;
+• the first autocorrelation coefficient from the differenced data;
+• the sum of squares of the first ten autocorrelation coefficients from the differenced data;
+• the first autocorrelation coefficient from the twice differenced data;
+• the sum of squares of the first ten autocorrelation coefficients from the twice differenced data;
+• For seasonal data, the autocorrelation coefficient at the first seasonal lag is also returned.
+
+For example:
+
+```{r examples of features of autocorrelations of data}
+View(tourism %>% filter(Purpose == "Business") %>% features(Trips, feat_acf))
+```
+
