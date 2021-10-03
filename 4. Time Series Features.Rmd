@@ -47,3 +47,61 @@ For example:
 View(tourism %>% filter(Purpose == "Business") %>% features(Trips, feat_acf))
 ```
 
+## 4.3 STL Features
+
+A time series decomposition can be used to measure the strength of trend and seasonality in a time series. Recall that the decomposition is written as:
+
+$$y_t = T_t + S_t + R_t$$
+
+where $$T_t$$ is the smoothed trend component, $$S_t$$  is the seasonal component and  $$R_t$$ is a remainder component. For strongly trended data, the seasonally adjusted data should have much more variation than the remainder component.
+
+We define the strength of  trend as:
+
+$$F_T = max \left(0, 1 -\frac{Var(R_t)}{Var(T_t + R_t)}\right)$$
+
+Strength of seasonality is similar:
+
+$$F_S = max \left(0, 1 -\frac{Var(R_t)}{Var(S_t + R_t)}\right)$$
+
+A series with seasonal strength $$F_S$$ close to 0 exhibits almost no seasonality, while a series with strong seasonality will have $$F_s$$ close to 1 vbecayse $$Var(R_t)$$ will be much smaller than $$Var(S_t + R_t)$$
+
+```{r}
+tourism %>% 
+  features(Trips, feat_stl)
+```
+
+<b>We can then use these features in plots to identify what type of series are heavily trended and what are most seasonal.</b>
+
+```{r Figure 4.1: Seasonal strength vs trend strength for all tourism series.}
+tourism %>% 
+  features(Trips, feat_stl) %>% 
+  ggplot(aes(x = trend_strength, y = seasonal_strength_year, col = Purpose)) +
+  geom_point() +
+  facet_wrap(vars(State))
+```
+
+Clearly, holiday series are most seasonal which is unsurprising. The strongest trends tend to be in Western Australia and Victoria. The most seasonal series can also be easily identified and plotted.
+
+```{r Figure 4.2: The most seasonal series in the Australian tourism data.}
+
+tourism %>% 
+  features(Trips, feat_stl) %>% 
+  filter(seasonal_strength_year == max(seasonal_strength_year)) %>% 
+  left_join(tourism, by = c("State", "Region", "Purpose")) %>% 
+  ggplot(aes(x = Quarter, y = Trips)) +
+  geom_line() +
+  facet_grid(vars(State, Region, Purpose))
+
+```
+
+This shows holiday trips to the most popular ski region of Australia.
+
+The `feat_stl()` function returns several more features other than those discussed above.
+
+• `seasonal_peak_year` indicates the timing of the peaks — which month or quarter contains the largest seasonal component. This tells us something about the nature of the seasonality. In the Australian tourism data, if Quarter 3 is the peak seasonal period, then people are travelling to the region in winter, whereas a peak in Quarter 1 suggests that the region is more popular in summer.
+• `seasonal_trough_year` indicates the timing of the troughs — which month or quarter contains the smallest seasonal component.
+• `spikiness` measures the prevalence of spikes in the remainder component $$R_t$$ of the of the STL decomposition. It is the variance of the leave-one-out variances of $$R_t$$
+• linearity measures the linearity of the trend component of the STL decomposition. It is based on the coefficient of a linear regression applied to the trend component.
+• curvature measures the curvature of the trend component of the STL decomposition. It is based on the coefficient from an orthogonal quadratic regression applied to the trend component.
+• `stl_e_acf1` is the first autocorrelation coefficient of the remainder series.
+• `stl_e_acf10` is the sum of squares of the first ten autocorrelation coefficients of the remainder series.
