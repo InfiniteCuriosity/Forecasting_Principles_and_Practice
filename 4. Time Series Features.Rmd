@@ -105,3 +105,29 @@ The `feat_stl()` function returns several more features other than those discuss
 • curvature measures the curvature of the trend component of the STL decomposition. It is based on the coefficient from an orthogonal quadratic regression applied to the trend component.
 • `stl_e_acf1` is the first autocorrelation coefficient of the remainder series.
 • `stl_e_acf10` is the sum of squares of the first ten autocorrelation coefficients of the remainder series.
+
+## 4.4 List of other features
+
+The remaining features in the feasts package, not previously discussed, are listed here for reference. The details of some of them are discussed later in the book.
+
+• `coef_hurst` will calculate the Hurst coefficient of a time series which is a measure of “long memory.” A series with long memory will have significant autocorrelations for many lags.
+• `feat_spectral` will compute the (Shannon) spectral entropy of a time series, which is a measure of how easy the series is to forecast. A series which has strong trend and seasonality (and so is easy to forecast) will have entropy close to 0. A series that is very noisy (and so is difficult to forecast) will have entropy close to 1.
+• `box_pierce` gives the Box-Pierce statistic for testing if a time series is white noise, and the corresponding p-value. This test is discussed in Section 5.4.
+• `ljung_box` gives the Ljung-Box statistic for testing if a time series is white noise, and the corresponding p-value. This test is discussed in Section 5.4.
+The k-th partial autocorrelation measures the relationship between observations k periods apart after removing the effects of observations between them. So the first partial autocorrelation (k=1) is identical to the first autocorrelation, because there is nothing between consecutive observations to remove. Partial autocorrelations are discussed in Section 9.5. The `feat_pacf` function contains several features involving partial autocorrelations including the sum of squares of the first five partial autocorrelations for the original series, the first-differenced series and the second-differenced series. For seasonal data, it also includes the partial autocorrelation at the first seasonal lag.
+• `unitroot_kpss` gives the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) statistic for testing if a series is stationary, and the corresponding p-value. This test is discussed in Section 9.1.
+• `unitroot_pp` gives the Phillips-Perron statistic for testing if a series is non-stationary, and the corresponding p-value.
+• `unitroot_ndiffs` gives the number of differences required to lead to a stationary series based on the KPSS test. This is discussed in Section 9.1
+unitroot_nsdiffs gives the number of seasonal differences required to make a series stationary. This is discussed in Section 9.1.
+• `var_tiled_mean` gives the variances of the “tiled means” (i.e., the means of consecutive non-overlapping blocks of observations). The default tile length is either 10 (for non-seasonal data) or the length of the seasonal period. This is sometimes called the “stability” feature.
+• `var_tiled_var` gives the variances of the “tiled variances” (i.e., the variances of consecutive non-overlapping blocks of observations). This is sometimes called the “lumpiness” feature.
+• `shift_level_max` finds the largest mean shift between two consecutive sliding windows of the time series. This is useful for finding sudden jumps or drops in a time series.
+• `shift_level_index` gives the index at which the largest mean shift occurs.
+• `shift_var_max` finds the largest variance shift between two consecutive sliding windows of the time series. This is useful for finding sudden changes in the volatility of a time series.
+• `shift_var_index` gives the index at which the largest variance shift occurs.
+• `shift_kl_max` finds the largest distributional shift (based on the Kulback-Leibler divergence) between two consecutive sliding windows of the time series. This is useful for finding sudden changes in the distribution of a time series.
+• `shift_kl_index` gives the index at which the largest KL shift occurs.
+• `n_crossing_points` computes the number of times a time series crosses the median.
+longest_flat_spot computes the number of sections of the data where the series is relatively unchanging.
+stat_arch_lm returns the statistic based on the Lagrange Multiplier (LM) test of Engle (1982) for autoregressive conditional heteroscedasticity (ARCH).
+• `guerrero` computes the optimal λ value for a Box-Cox transformation using the Guerrero method (discussed in Section 3.1).
