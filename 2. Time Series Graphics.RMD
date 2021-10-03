@@ -29,7 +29,7 @@ olympic_running
 
 ```
 
-he 14 time series in this object are uniquely identified by the keys: the `Length` and `Sex` variables. The `distinct()` function can be used to show the categories of each variable or even combinations of variables:
+The 14 time series in this object are uniquely identified by the keys: the `Length` and `Sex` variables. The `distinct()` function can be used to show the categories of each variable or even combinations of variables:
 
 ```{r Using the distinct function to show categories of each variable}
 olympic_running %>% distinct(Sex)
@@ -86,3 +86,45 @@ prison
 
 ```
 
+## 2.2 Time plots
+
+For time series data, the obvious graph to start with is a time plot. That is, the observations are plotted against the time of observation, with consecutive observations joined by straight lines. Figure 2.1 shows the weekly economy passenger load on Ansett airlines between Australia’s two largest cities.
+
+```{r Time series plot}
+melsyd_economy <- ansett %>% 
+  filter(Airports == "MEL-SYD", Class == "Economy") %>% 
+  mutate(Passengers = Passengers / 1000)
+autoplot(melsyd_economy, Passengers) +
+  labs(title = "Ansett airline economy class",
+       subtitle = "Melbourne-Sydney",
+       y = "Passengers ('000)")
+```
+
+The time plot immediately reveals some interesting features.
+
+• There was a period in 1989 when no passengers were carried — this was due to an industrial dispute.<br>
+• There was a period of reduced load in 1992. This was due to a trial in which some economy class seats were replaced by business class seats.<br>
+• A large increase in passenger load occurred in the second half of 1991.<br>
+• There are some large dips in load around the start of each year. These are due to holiday effects.
+• There is a long-term fluctuation in the level of the series which increases during 1987, decreases in 1989, and increases again through 1990 and 1991.<br>
+• There are some periods of missing observations.<br>
+
+Let's take a look at the a10 data saved earlier, plotted as a time series:
+
+```{r a10 data saved as a time series}
+autoplot(a10, TotalCost) +
+  labs(y = "$ millionss",
+       title = "Australian antidiabetic drug sales")
+
+```
+
+## 2.3 Time Series Patterns
+
+<span style="color:#0000ff;">Trend</span><br>
+A trend exists when there is a long-term increase or decrease in the data. It does not have to be linear. Sometimes we will refer to a trend as “changing direction,” when it might go from an increasing trend to a decreasing trend. There is a trend in the antidiabetic drug sales data shown in Figure 2.2.<br>
+<span style="color:#0000ff;">Seasonal</span><br>
+A seasonal pattern occurs when a time series is affected by seasonal factors such as the time of the year or the day of the week. Seasonality is always of a fixed and known period. The monthly sales of antidiabetic drugs (Figure 2.2) shows seasonality which is induced partly by the change in the cost of the drugs at the end of the calendar year.<br>
+<span style="color:#0000ff;">Cyclic</span><br>
+A cycle occurs when the data exhibit rises and falls that are not of a fixed frequency. These fluctuations are usually due to economic conditions, and are often related to the “business cycle.” The duration of these fluctuations is usually at least 2 years.<br>
+
+## 2.4 Seasonal plots
