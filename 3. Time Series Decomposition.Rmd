@@ -273,55 +273,38 @@ us_retail_employment_ma %>%
 
 ### Additive decomposition
 
-Step 1
-If  
-m
-  is an even number, compute the trend-cycle component  
-^
-T
-t
-  using a  
-2
-×
-m
- -MA. If  
-m
-  is an odd number, compute the trend-cycle component  
-^
-T
-t
- using an  
-m
- -MA.
-Step 2
-Calculate the detrended series:  
-y
-t
-−
-^
-T
-t
- .
-Step 3
-To estimate the seasonal component for each season, simply average the detrended values for that season. For example, with monthly data, the seasonal component for March is the average of all the detrended March values in the data. These seasonal component values are then adjusted to ensure that they add to zero. The seasonal component is obtained by stringing together these monthly values, and then replicating the sequence for each year of data. This gives  
-^
-S
-t
- .
-Step 4
-The remainder component is calculated by subtracting the estimated seasonal and trend-cycle components:  
-^
-R
-t
-=
-y
-t
-−
-^
-T
-t
-−
-^
-S
-t
- .
+<span style="color:#0000ff;">Step 1:</span><br>
+
+$$\textrm{If m is an even number, compute the trend-cycle component }\hat{T_t} \textrm{ using a 2 x MA. If m is an odd number, compute the trebd-cycle component}\hat{T_t} \textrm{using an m=MA.}$$
+
+<span style="color:#0000ff;">Step 2:</span><br>
+Calculate the detrended series: $$y_t - \hat{T_t}$$
+
+<span style="color:#0000ff;">Step 3:</span><br>
+To estimate the seasonal component for each season, simply average the detrended values for that season. For example, with monthly data, the seasonal component for March is the average of all the detrended March values in the data. These seasonal component values are then adjusted to ensure that they add to zero. The seasonal component is obtained by stringing together these monthly values, and then replicating the sequence for each year of data. This gives $$\hat{S_t}$$
+
+<span style="color:#0000ff;">Step 4:</span><br>
+
+The remainder component is calculated by subracting the estimated seasonal and trend-cycle components: $$\hat{R_t} = \hat{y_t} - \hat{T_t} - \hat{S_t}$$
+
+Figure 3.13 shows a classical decomposition of the total retail employment series across the US.
+
+```{r Figure 3.13: A classical additive decomposition of US retail employment.}
+us_retail_employment %>% 
+  model(
+    classical_decomposition(Employed, type = "additive")
+  ) %>% 
+  components() %>% 
+  autoplot() +
+  labs(title = "Classical additive decomposition of total US retail employment")
+```
+
+### Comments of classical decomposition
+
+While classical decomposition is still widely used, it is not recommended, as there are now several much better methods. Some of the problems with classical decomposition are summarised below.
+
+• The estimate of the trend-cycle is unavailable for the first few and last few observations. For example, if m=12, there is no trend-cycle estimate for the first six or the last six observations. Consequently, there is also no estimate of the remainder component for the same time periods.
+• The trend-cycle estimate tends to over-smooth rapid rises and falls in the data.
+• Classical decomposition methods assume that the seasonal component repeats from year to year. For many series, this is a reasonable assumption, but for some longer series it is not. For example, electricity demand patterns have changed over time as air conditioning has become more widespread. In many locations, the seasonal usage pattern from several decades ago had its maximum demand in winter (due to heating), while the current seasonal pattern has its maximum demand in summer (due to air conditioning). Classical decomposition methods are unable to capture these seasonal changes over time.
+• Occasionally, the values of the time series in a small number of periods may be particularly unusual. For example, the monthly air passenger traffic may be affected by an industrial dispute, making the traffic during the dispute different from usual. The classical method is not robust to these kinds of unusual values.
+
