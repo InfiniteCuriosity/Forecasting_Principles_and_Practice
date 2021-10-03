@@ -344,3 +344,21 @@ a10 %>%
 
 ```
 
+## 2.9 White noise
+
+Time series that show no autocorrelation are called <b>white noise</b>. Figure 2.22 gives an example of a white noise series.
+
+```{r White noise time series example}
+set.seed(30)
+y <- tsibble(sample = 1:50, wn = rnorm(50), index = sample)
+y %>% autoplot(wn) + labs(title = "White noise", y = "")
+
+```
+
+```{r White noise autocorrelation}
+y %>% 
+  ACF(wn) %>% 
+  autoplot() + labs(title = "White noise")
+```
+
+Completion of text for chapter 2.
