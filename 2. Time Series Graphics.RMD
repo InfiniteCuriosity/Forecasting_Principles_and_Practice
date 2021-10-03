@@ -284,3 +284,18 @@ visitors %>%
 For each panel, the variable on the vertical axis is given by the variable name in that row, and the variable on the horizontal axis is given by the variable name in that column. There are many options available to produce different plots within each panel. In the default version, the correlations are shown in the upper right half of the plot, while the scatterplots are shown in the lower half. On the diagonal are shown density plots.
 
 The value of the scatterplot matrix is that it enables a quick view of the relationships between all pairs of variables. In this example, mostly positive relationships are revealed, with the strongest relationships being between the neighbouring states located in the south and south east coast of Australia, namely, New South Wales, Victoria and South Australia. Some negative relationships are also revealed between the Northern Territory and other regions. The Northern Territory is located in the north of Australia famous for its outback desert landscapes visited mostly in winter. Hence, the peak visitation in the Northern Territory is in the July (winter) quarter in contrast to January (summer) quarter for the rest of the regions.
+
+## 2.7 Lab plots
+
+Figure 2.19 displays scatterplots of quarterly Australian beer production (introduced in Figure 1.1), where the horizontal axis shows lagged values of the time series. Each graph shows  $$y_t \textrm{ is plotted against } y_{t-k} \textrm{ for different values of k}$$
+```{r Lagged scatterplots for quarterly beer production.}
+
+recent_production <- aus_production %>% 
+  filter(year(Quarter) >= 2000)
+recent_production %>% 
+  gg_lag(Beer, geom = "point") +
+  labs(x = "lab(Beerk, k")
+
+```
+
+Here the colours indicate the quarter of the variable on the vertical axis. The relationship is strongly positive at lags 4 and 8, reflecting the strong seasonality in the data. The negative relationship seen for lags 2 and 6 occurs because peaks (in Q4) are plotted against troughs (in Q2)
