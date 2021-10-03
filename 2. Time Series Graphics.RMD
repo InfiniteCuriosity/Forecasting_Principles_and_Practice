@@ -299,3 +299,48 @@ recent_production %>%
 ```
 
 Here the colours indicate the quarter of the variable on the vertical axis. The relationship is strongly positive at lags 4 and 8, reflecting the strong seasonality in the data. The negative relationship seen for lags 2 and 6 occurs because peaks (in Q4) are plotted against troughs (in Q2)
+
+## 2.8 Autocorrelation
+
+Just as correlation measures the extent of a linear relationship between two variables, autocorrelation measures the linear relationship between <i>lagged</i> values of a time series.
+
+$$r_k = \frac{\sum_{t = k+1}^T\left(y_t - \bar{y} \right)\left(y_{t-k} - \bar{y} \right)}{\sum_{t = 1}^T{\left(y_t - \bar{y} \right)^2}}$$
+
+where T is the length of the time series. The autocorrelation coefficients make up the autocorrelation function or ACF.
+
+The autocorrelation coefficients for the beer production data can be computed using the ACF() function.
+
+```{r The ACF (autocorrelation) function}
+recent_production %>% ACF(Beer, lab_max = 9)
+
+```
+
+The values in the `acf` column are $$r_1...r_9$$, corresponding to the nine scatterplots in Figure 2.19. We usually plot the ACF to see how the correlations change with the lag  
+k. The plot is sometimes known as a correlogram.
+
+```{r Autocorrelation function of quarterly beer production.}
+recent_production %>% 
+  ACF(Beer) %>% 
+  autoplot() + labs(title = "Australian beer production")
+
+```
+
+In this graph:
+• $$r_4$$ is higher than for the other lags. This is due to the seasonal pattern in the data: the peaks tend to be four quarters apart and the troughs tend to be four quarters apart.
+• $$r_2$$ is more negative than for the other lags because troughs tend to be two quarters behind peaks.
+The dashed blue lines indicate whether the correlations are significantly different from zero (as explained in Section 2.9).
+
+## Trend and seasonality in Autocorrelation plots
+
+When data have a trend, the autocorrelations for small lags tend to be large and positive because observations nearby in time are also nearby in value. So the ACF of a trended time series tends to have positive values that slowly decrease as the lags increase.
+
+When data are seasonal, the autocorrelations will be larger for the seasonal lags (at multiples of the seasonal period) than for other lags.
+
+```{r ACF of monthly Australian antidiabetic drug sales.}
+a10 %>% 
+  ACF(TotalCost, lag_max = 48) %>% 
+  autoplot() +
+  labs(title = "Australian antidiabetic drug sales")
+
+```
+
