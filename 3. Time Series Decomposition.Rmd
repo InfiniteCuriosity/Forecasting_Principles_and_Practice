@@ -85,3 +85,26 @@ aus_production %>%
                                     round(lambda, 2))))
 ```
 
+## 3.2 Time series components
+
+If we assume an additive decomposition, then we can write:
+
+$$y_t = S_t + T_t + R_t$$
+where $$y_t$$ is the data, $$S_t$$ is the seasonal component, $$T_t$$ is the trend-cycle component, and $$R_t$$ is the remainder component, all a period $$t$$. Alternatively, a multiplicative decomposition would be written as:
+
+$$y_t = S_t \times T_t \times R_t$$
+
+## Employment in the US Retail Sector
+
+We will decompose the number of persons employed in retail as shown in Figure 3.5. The data shows the total monthly number of persons in thousands employed in the retail sector across the US since 1990.
+
+```{r Total number of persons employed in US retail.}
+us_retail_employment <- us_employment %>%
+  filter(year(Month) >= 1990, Title == "Retail Trade") %>% 
+  select(-Series_ID)
+autoplot(us_retail_employment, Employed) +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US Retail")
+
+```
+
