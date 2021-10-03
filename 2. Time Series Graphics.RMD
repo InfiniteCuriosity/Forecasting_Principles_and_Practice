@@ -128,3 +128,42 @@ A seasonal pattern occurs when a time series is affected by seasonal factors suc
 A cycle occurs when the data exhibit rises and falls that are not of a fixed frequency. These fluctuations are usually due to economic conditions, and are often related to the “business cycle.” The duration of these fluctuations is usually at least 2 years.<br>
 
 ## 2.4 Seasonal plots
+
+A seasonal plot is similar to a time plot except that the data are plotted against the individual “seasons” in which the data were observed. An example is given in Figure 2.4 showing the antidiabetic drug sales.
+
+```{r Seasonal plot: Antidiabetic drug sales}
+a10 %>%
+  gg_season(TotalCost, labels = "both") +
+  labs(y = "$ millions",
+       title = "Seasonal plot: Antidiabets drug sales") +
+  expand_limits(x = ymd(c("1972-12-28", "1973-12-04")))
+```
+
+### Multiple seasonal periods
+
+Where the data has more than one seasonal pattern, the period argument can be used to select which seasonal plot is required. The vic_elec data contains half-hourly electricity demand for the state of Victoria, Australia. We can plot the daily pattern, weekly pattern or yearly pattern by specifying the period argument.
+
+```{r Plotting multiple seasonal periods}
+vic_elec %>% gg_season(Demand, period = "day") +
+  theme(legend.position = "none") +
+  labs(y = "MW", title = "Electricity demand: Victoria")
+
+```
+
+
+
+```{r Seasonal plot showing weekly seasonal patterns for Victorian electricity demand.}
+
+vic_elec %>% gg_season(Demand, period = "week") +
+  theme(legend.position = "none") +
+  labs(y = "MW", title = "Electricity demand: Victoria by day of the week")
+
+```
+
+```{r Seasonal plot showing yearly seasonal patterns for Victorian electricity demand.}
+
+vic_elec %>% gg_season(Demand, period = "year") +
+  labs(y="Megawatts", title = "Electricity demand: Victoria") 
+
+```
+
