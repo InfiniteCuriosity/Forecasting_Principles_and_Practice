@@ -4,6 +4,12 @@ author: "Russ Conte"
 date: "10/3/2021"
 output: html_document
 ---
+---
+title: "3. Time Series Decomposition.RMD"
+author: "Russ Conte"
+date: "10/3/2021"
+output: html_document
+---
 
 Adjusting the historical data can often lead to a simpler time series. Here, we deal with four kinds of adjustments: calendar adjustments, population adjustments, inflation adjustments and mathematical transformations. The purpose of these adjustments and transformations is to simplify the patterns in the historical data by removing known sources of variation, or by making the pattern more consistent across the whole data set. Simpler patterns are usually easier to model and lead to more accurate forecasts.
 
@@ -18,6 +24,8 @@ For example, if you are studying the total monthly sales in a retail store, ther
 Any data that are affected by population changes can be adjusted to give per-capita data. That is, consider the data per person (or per thousand people, or per million people) rather than the total. For example, if you are studying the number of hospital beds in a particular region over time, the results are much easier to interpret if you remove the effects of population changes by considering the number of beds per thousand people. Then you can see whether there have been real increases in the number of beds, or whether the increases are due entirely to population increases. It is possible for the total number of beds to increase, but the number of beds per thousand people to decrease. This occurs when the population is increasing faster than the number of hospital beds. <b>For most data that are affected by population changes, it is best to use per-capita data rather than the totals.</b>
 
 ```{r Example of population adjustments in Australia}
+library(tidyverse)
+library(fpp3)
 global_economy %>% 
   filter(Country == "Australia") %>% 
   autoplot(GDP/Population) +
@@ -28,7 +36,7 @@ global_economy %>%
 
 <b>Data which are affected by the value of money are best adjusted before modelling.</b> For example, the average cost of a new house will have increased over the last few decades due to inflation. A $200,000 house this year is not the same as a $200,000 house twenty years ago. For this reason, <b>financial time series are usually adjusted so that all values are stated in dollar values from a particular year.</b> For example, the house price data may be stated in year 2000 dollars.
 
-To make these adjustments, a price index is used. If $$z_t$$ denotes the price inex and $$y_t$$ denotes the house price in year $$t$$, then $$x_t = \frac{y_t}{z_t * z_2000}$$ gives the adjusted house price at year 2000 dollar values. Price indexes are often constructed by government agencies. For consumer goods, a common price index is the Consumer Price Index (or CPI).
+To make these adjustments, a price index is used. If $$z_t \textrm{ denotes the price index and } y_t \textrm{ denotes the house price in year t, then } x_t = \frac{y_t}{z_t * z_2000}$$ gives the adjusted house price at year 2000 dollar values. Price indexes are often constructed by government agencies. For consumer goods, a common price index is the Consumer Price Index (or CPI).
 
 ```{r Inflation adjustments example}
 
@@ -67,9 +75,7 @@ $$w_t = \begin{cases}
  (sign(y_t)|y_t|^\lambda -1)/\lambda  \textrm{ otherwise} 
 \end{cases}$$
 
-A good value of  
-λ
-  is one which makes the size of the seasonal variation about the same across the whole series, as that makes the forecasting model simpler. In this case, λ = 0.10 works quite well, although any value of λ between 0.0 and 0.2 would give similar results.
+A good value of λ is one which makes the size of the seasonal variation about the same across the whole series, as that makes the forecasting model simpler. In this case, λ = 0.10 works quite well, although any value of λ between 0.0 and 0.2 would give similar results.
   
 The `guerrero` feature (Guerrero, 1993) can be used to choose a value of lambda for you. In this case it chooses λ = 0.12.
 
@@ -90,7 +96,7 @@ aus_production %>%
 If we assume an additive decomposition, then we can write:
 
 $$y_t = S_t + T_t + R_t$$
-where $$y_t$$ is the data, $$S_t$$ is the seasonal component, $$T_t$$ is the trend-cycle component, and $$R_t$$ is the remainder component, all a period $$t$$. Alternatively, a multiplicative decomposition would be written as:
+where $$y_t \textrm{ is the data, } S_t \textrm{ is the seasonal component, } T_t\textrm{ is the trend-cycle component, }  and R_t \textrm{ is the remainder component at a time t.}$$ Alternatively, a multiplicative decomposition would be written as:
 
 $$y_t = S_t \times T_t \times R_t$$
 
@@ -107,4 +113,102 @@ autoplot(us_retail_employment, Employed) +
        title = "Total employment in US Retail")
 
 ```
+
+To illustrate the ideas, we will use the STL decomposition method, which is discussed in Section 3.6.
+
+```{r Example of STL decomposition}
+dcmp <- us_retail_employment %>% 
+  model(stl = STL(Employed))
+components(dcmp)
+
+```
+
+The output above shows the components of an STL decomposition. The original data is shown (as `Employed`), followed by the estimated components. This output forms a “dable” or decomposition table. The header to the table shows that the `Employed` series has been decomposed additively.
+
+The `trend` column containing the trend-cycle $$T_t \textrm{ follows the overall movement of the series, ignoring any seasonality and random fluctuations, as shown in Figure 3.6.}$$
+```{r Figure 3.6: Total number of persons employed in US retail: the trend-cycle component (orange) and the raw data (grey).}
+components(dcmp) %>% 
+  as_tsibble() %>% 
+  autoplot(Employed, colour = "gray") +
+  geom_line(aes(y = trend), colour = "#D55E00") +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US Retail")
+```
+
+We can plot all of the components in a single figure using `autoplot()`, as shown in Figure 3.7.
+
+```{r Plot all of the components in one figure}
+components(dcmp) %>% autoplot()
+```
+
+## Seasonally adjusted data
+
+If the seasonal component is removed from the original data, the resulting values are the “seasonally adjusted” data. For an additive decomposition, the seasonally adjusted data are given by $$y_t - S_t$$ and for multiplicative data, the seasonally adjusted values are obtained using $$y_t/S_t$$
+
+```{r Figure 3.8, Seasonally adjusted data}
+components(dcmp) %>%
+  as_tsibble() %>%
+  autoplot(Employed, colour = "gray") +
+  geom_line(aes(y = season_adjust), colour = "#0072B2") +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US Retail")
+
+```
+
+If the variation due to seasonality is not of primary interest, the seasonally adjusted series can be useful. For example, monthly unemployment data are usually seasonally adjusted in order to highlight variation due to the underlying state of the economy rather than the seasonal variation. An increase in unemployment due to school leavers seeking work is seasonal variation, while an increase in unemployment due to an economic recession is non-seasonal. Most economic analysts who study unemployment data are more interested in the non-seasonal variation. Consequently, employment data (and many other economic series) are usually seasonally adjusted.
+
+## 3.3 Moving Averages
+
+The first step in a classical decomposition is to use a moving average method to estimate the trend-cycle, so we begin by discussing moving averages.
+
+<span style="color:#0000ff;">Moving average smoothing</span><br>
+
+The moving average of order `m` can be written as:
+
+$$\hat{T_t} = \frac{1}{m}\sum_{j = -k}^{k}y_{t+j}$$
+
+where m = 2k+1
+
+Observations that are nearby in time are also likely to be close in value. Therefore, the average eliminates some of the randomness in the data, leaving a smooth trend-cycle component. We call this an m<b>-MA</b>, meaning a moving average of order m.
+
+```{r Figure 3.9: Australian exports of goods and services: 1960–2017.}
+global_economy %>% 
+  filter(Country == "Australia") %>% 
+  autoplot(Exports) +
+  labs(y = "% of GDP", title = "Annual Total Australian Exports")
+
+```
+
+```{r}
+global_economy %>% 
+  filter(Country == "Australia") %>% 
+  select(Year, Exports)
+```
+
+In the last column of this table, a moving average of order 5 is shown, providing an estimate of the trend-cycle. The first value in this column is the average of the first five observations, 1960–1964; the second value in the 5-MA column is the average of the values for 1961–1965; and so on. This is easily computed using `slide_dbl()` from the `slider` package which applies a function to “sliding” time windows. In this case, we use the mean() function with a window of size 5.
+
+```{r 5-year moving average}
+aus_exports <- global_economy %>% 
+   filter(Country == "Australia") %>% 
+   mutate(
+     `5-MA` = slider::slide2_dbl(Exports, mean,
+                  .before = 2,  .after = 2, .complete = TRUE))
+aus_exports
+```
+
+To see what the trend-cycle estimate looks like, we plot it along with the original data in Figure 3.10.
+
+```{r Figure 3.10: Australian exports (black) along with the 5-MA estimate of the trend-cycle (orange).}
+aus_exports %>% 
+  autoplot(Exports) +
+  geom_line(aes(y = `5-MA`), colour = "#D55E00") +
+  labs(y = "% of GDP",
+       title = "Total Australian exports, 5-year moving average") +
+  guides(colour = guide_legend(title = "series"))
+
+
+
+```
+
+Notice that the trend-cycle (in orange) is smoother than the original data and captures the main movement of the time series without all of the minor fluctuations. The order of the moving average determines the smoothness of the trend-cycle estimate. In general, a larger order means a smoother curve.
 
