@@ -212,3 +212,116 @@ aus_exports %>%
 
 Notice that the trend-cycle (in orange) is smoother than the original data and captures the main movement of the time series without all of the minor fluctuations. The order of the moving average determines the smoothness of the trend-cycle estimate. In general, a larger order means a smoother curve.
 
+## Moving averages of moving averages
+
+It is possible to apply a moving average to a moving average. One reason for doing this is to make an even-order moving average symmetric.
+
+For example, we might take a moving average of order 4, and then apply another moving average of order 2 to the results. In the following table, this has been done for the first few years of the Australian quarterly beer production data.
+
+```{r Table 3.2: A moving average of order 4 applied to the quarterly beer data, followed by a moving average of order 2.}
+
+beer <- aus_production %>% 
+  filter(year(Quarter) >= 1992) %>% 
+  select(Quarter, Beer)
+
+beer_ma <-  beer %>%
+  mutate(
+    `4-MA` = slider::slide_dbl(Beer, mean,
+                                .before = 1, .after = 2, .complete = TRUE),
+    `2x4-MA` = slider::slide_dbl(`4-MA`, mean,
+                                  .before = 1, .after = 0, .complete = TRUE)
+  )
+beer_ma
+
+```
+
+The notation “ 2×4-MA” in the last column means a 4-MA followed by a 2-MA. The values in the last column are obtained by taking a moving average of order 2 of the values in the previous column. For example, the first two values in the 4-MA column are 451.25=(443+410+420+532)/4 and 448.75=(410+420+532+433)/4. The first value in the 2x4-MA column is the average of these two: 450.00=(451.25+448.75)/2.
+
+When a 2-MA follows a moving average of an even order (such as 4), it is called a “centred moving average of order 4.” This is because the results are now symmetric. To see that this is the case, we can write the 2×4-MA as follows:
+
+$$\hat{T_t} = \frac{1}{2}\left [\frac{1}{4}(y_{t-2} + y_{t-1} +y_t + y_{t+1}) + \frac{1}{4}(y_{t-1} + y_{t} +y_{t+1} + y_{t+2})\right]\\	
+= \frac{1}{8}y_{t-2} + \frac{1}{4}y_{t-1} + \frac{1}{4}y_{t+1} + \frac{1}{8}y_{t+2}$$
+
+## Estimating the trend = cycle with seasonal data
+
+The most common use of centered moving averages is for estimating the trend = cycl from seasonal data. Consider the 2x4-MA:
+
+$$\hat{T_t} = \frac{1}{8}y_{t-2} + \frac{1}{4}y_{t-1} + \frac{1}{4}y_{t+1} + \frac{1}{8}y_{t+2}$$
+
+When applied to quarterly data, each quarter of the year is given equal weight as the first and last terms apply to the same quarter in consecutive years. Consequently, the seasonal variation will be averaged out and the resulting values of $$\hat{T_t}$$ will have little or no seasonal variation remaining. A similar effect wuld be obtained using a 2xz8-MA or 2x12-MA to quarterly data.
+
+## Example: Employment in the US Retail Sector
+
+```{r Figure 3.12: A 2x12-MA applied to the US retail employment series.}
+
+us_retail_employment_ma <- us_retail_employment %>% 
+  mutate(
+    `12-MA` = slider::slide_dbl(Employed, mean,
+                                .before = 5, .after = 6, .complete = TRUE),
+    `2x12-MA` = slider::slide_dbl(`12-MA`, mean,
+                                  .before = 1, .after = 0, .complete = TRUE)
+  )
+
+us_retail_employment_ma %>% 
+  autoplot(Employed, colour = "gray") +
+  geom_line(aes(y = `2x12-MA`), colour = "#D55E00") +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US Retail")
+```
+
+## 3.4 Classical decomposition
+
+### Additive decomposition
+
+Step 1
+If  
+m
+  is an even number, compute the trend-cycle component  
+^
+T
+t
+  using a  
+2
+×
+m
+ -MA. If  
+m
+  is an odd number, compute the trend-cycle component  
+^
+T
+t
+ using an  
+m
+ -MA.
+Step 2
+Calculate the detrended series:  
+y
+t
+−
+^
+T
+t
+ .
+Step 3
+To estimate the seasonal component for each season, simply average the detrended values for that season. For example, with monthly data, the seasonal component for March is the average of all the detrended March values in the data. These seasonal component values are then adjusted to ensure that they add to zero. The seasonal component is obtained by stringing together these monthly values, and then replicating the sequence for each year of data. This gives  
+^
+S
+t
+ .
+Step 4
+The remainder component is calculated by subtracting the estimated seasonal and trend-cycle components:  
+^
+R
+t
+=
+y
+t
+−
+^
+T
+t
+−
+^
+S
+t
+ .
