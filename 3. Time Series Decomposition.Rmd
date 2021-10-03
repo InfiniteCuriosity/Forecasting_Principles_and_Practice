@@ -363,3 +363,22 @@ autoplot(seats_dcmp) +
 
 ```
 
+## STL decomposition
+
+STL is a versatile and robust method for decomposing time series. STL is an acronym for “Seasonal and Trend decomposition using Loess,” while loess is a method for estimating nonlinear relationships. The STL method was developed by R. B. Cleveland et al. (1990).
+
+The best way to begin learning how to use STL is to see some examples and experiment with the settings. Figure 3.7 showed an example of an STL decomposition applied to the total US retail employment series. Figure 3.18 shows an alternative STL decomposition where the trend-cycle is more flexible, the seasonal pattern is fixed, and the robust option has been used.
+
+```{r Figure 3.18: Total US retail employment (top) and its three additive components obtained from a robust STL decomposition with flexible trend-cycle and fixed seasonality.}
+us_retail_employment %>% 
+  model(
+    STL(Employed ~ trend(window = 7) +
+          season(window = "periodic"),
+        robust = TRUE)) %>% 
+  components() %>% 
+  autoplot()
+```
+
+The two main parameters to be chosen when using STL are the trend-cycle window `trend(window = ?)` and the seasonal `window season(window = ?)`. These control how rapidly the trend-cycle and seasonal components can change. Smaller values allow for more rapid changes. Both trend and seasonal windows should be odd numbers; trend window is the number of consecutive observations to be used when estimating the trend-cycle; season window is the number of consecutive years to be used in estimating each value in the seasonal component. Setting the seasonal window to be infinite is equivalent to forcing the seasonal component to be periodic `season(window='periodic'`) (i.e., identical across years). This was the case in Figure 3.18.
+
+Conclusion of chapter 3! :)
