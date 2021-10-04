@@ -191,7 +191,7 @@ In the last column of this table, a moving average of order 5 is shown, providin
 aus_exports <- global_economy %>% 
    filter(Country == "Australia") %>% 
    mutate(
-     `5-MA` = slider::slide2_dbl(Exports, mean,
+     `5-MA` = slider::slide_dbl(Exports, mean,
                   .before = 2,  .after = 2, .complete = TRUE))
 aus_exports
 ```
