@@ -44,7 +44,7 @@ The `feat_acf()` function computes a selection of the autocorrelations discussed
 For example:
 
 ```{r examples of features of autocorrelations of data}
-View(tourism %>% filter(Purpose == "Business") %>% features(Trips, feat_acf))
+tourism %>% filter(Purpose == "Business") %>% features(Trips, feat_acf)
 ```
 
 ## 4.3 STL Features
