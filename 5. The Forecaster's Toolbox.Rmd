@@ -218,3 +218,132 @@ bricks_fc %>%
 ```
 
 Conclusion of section 5.2
+
+## 5.3 Fitted values and residuals
+
+Each observation in a time series can be forecast using all previous observations. We call these <b>fitted values</b> and they are denoted by , meaning the forecast of yt based on observations y1,…,yt−1 . We use these so often, we sometimes drop part of the subscript and just write ^yt instead of ^yt|t−1. Fitted values almost always involve one-step forecasts.
+
+For example, if we use the mean method, the fitted values are given by $$\hat{y_t} = \hat{c}$$
+
+When the estimate of c involves observations after time t, the fitted values are not true forecasts. On the other hand, naïve or seasonal naïve forecasts do not involve any parameters, and so fitted values are true forecasts in such cases.
+
+## Residuals
+
+The “residuals” in a time series model are what is left over after fitting a model. The residuals are equal to the difference between the observations and the corresponding fitted values:
+
+$$e_t = y_t - \hat{y_t}$$
+
+The fitted values and residuals from a model can be obtained using the `augment()` function. In the beer production example in Section 5.2, we saved the fitted models as `beer_fit`. So we can simply apply `augment()` to this object to compute the fitted values and residuals for all models.
+
+```{r}
+augment(beer_fit)
+```
+
+There are three new columns added to the original data:
+
+•    `.fitted` contains the fitted values;
+•    `.resid` contains the residuals;
+•    `.innov` contains the “innovation residuals” which, in this case, are identical to the regular residuals.
+
+## 5.4 Residual diagnostics
+
+A good forecasting method will yield innovation residuals with the following properties:
+
+1. The innovation residuals are uncorrelated. If there are correlations between innovation residuals, then there is information left in the residuals which should be used in computing forecasts.
+2. The innovation residuals have zero mean. If they have a mean other than zero, then the forecasts are biased.
+
+If either of these properties is not satisfied, then the forecasting method can be modified to give better forecasts. Adjusting for bias is easy: if the residuals have mean m, then simply subtract m from all forecasts and the bias problem is solved. Fixing the correlation problem is harder, and we will not address it until Chapter 10.
+
+3. The innovation residuals have constant variance. This is known as “homoscedasticity”.
+4. The innovation residuals are normally distributed.
+
+```{r Figure 5.9: Daily Google stock prices in 2015.}
+google_stock <- gafa_stock %>%
+  filter(Symbol == "GOOG", year(Date) >= 2015) %>%
+  mutate(day = row_number()) %>%
+  update_tsibble(index = day, regular = TRUE)
+
+google_2015 <- google_stock %>% filter(year(Date) == 2015)
+autoplot(google_2015, Close) +
+  labs(y = "$US",
+       title = "Google daily closing stock prices in 2015")
+```
+
+The residuals obtained from forecasting this series using the naïve method are shown in Figure 5.10. The large positive residual is a result of the unexpected price jump in July.
+
+```{r Figure 5.10: Residuals from forecasting the Google stock price using the naïve method.}
+
+aug <- google_2015 %>% 
+  model(NAIVE(Close)) %>% 
+  augment()
+autoplot(aug, .innov) +
+  labs(y = "$US",
+       title = "Residuals from the naïve method")
+
+```
+
+```{r Figure 5.11: Histogram of the residuals from the naïve method applied to the Google stock price. }
+aug %>%
+  ggplot(aes(x = .innov)) +
+  geom_histogram() +
+  labs(title = "Histogram of residuals")
+```
+
+```{r Figure 5.12: ACF of the residuals from the naïve method applied to the Google stock price.}
+
+aug %>%
+  ACF(.innov) %>%
+  autoplot() +
+  labs(title = "Residuals from the naïve method")
+
+```
+
+These graphs show that the naïve method produces forecasts that appear to account for all available information. The mean of the residuals is close to zero and there is no significant correlation in the residuals series. The time plot of the residuals shows that the variation of the residuals stays much the same across the historical data, apart from the one outlier, and therefore the residual variance can be treated as constant. This can also be seen on the histogram of the residuals. The histogram suggests that the residuals may not be normal — the right tail seems a little too long, even when we ignore the outlier. Consequently, forecasts from this method will probably be quite good, but prediction intervals that are computed assuming a normal distribution may be inaccurate.
+
+A convenient shortcut for producing these residual diagnostic graphs is the gg_tsresiduals() function, which will produce a time plot, ACF plot and histogram of the residuals.
+
+```{r Figure 5.13: Residual diagnostic graphs for the naïve method applied to the Google stock price.}
+
+google_2015 %>% 
+  model(NAIVE(Close)) %>% 
+  gg_tsresiduals()
+
+```
+
+## Portmanteau tests for autocorrelation
+
+In addition to looking at the ACF plot, we can also do a more formal test for autocorrelation by considering a whole set of rk values as a group, rather than treating each one separately.
+
+the <b>Ljun-Box test</b>, based on
+
+$$Q^*=T(T+2)\sum_{k=1}^\ell(T-k)^{-1}r^2_k$$
+
+For the Google stock price example, the naïve method has no parameters, so K=0 in that case also. In the following code, lag=ℓ and dof=K.
+
+```{r}
+
+aug %>% features(.innov, box_pierce, lag = 10, dof = 0)
+
+aug %>% features(.innov, ljung_box, lag = 10, dof = 0)
+
+```
+
+For both Q and Q∗, the results are not significant (i.e., the p-values are relatively large). Thus, we can conclude that the residuals are not distinguishable from a white noise series.
+
+An alternative simple approach that may be appropriate for forecasting the Google daily closing stock price is the drift method. The `tidy()` function shows the one estimated parameter, the drift coefficient, measuring the average daily change observed in the historical data.
+
+```{r}
+fit <- google_2015 %>% model(RW(Close ~ drift()))
+tidy(fit)
+```
+
+Applying the Ljung-Box test, we set K=1 to account for the estimated parameter.
+
+```{r}
+augment(fit) %>% features(.innov, ljung_box, lag = 10, dof = 1)
+
+```
+
+As with the naïve method, the residuals from the drift method are indistinguishable from a white noise series.
+
+Conclusion of section 5.4
