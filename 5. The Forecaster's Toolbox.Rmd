@@ -22,7 +22,7 @@ gdppc
 
 ```
 
-## Plot the data (visualize)
+## Plot the data (visualize), we will use Sweden as our example
 
 ```{r Plot the data for Sweden}
 gdppc %>% 
@@ -36,11 +36,23 @@ TSLM(GDP_per_capita ~ trend())
 ## Definte a model (specify)
 There are many different time series models that can be used for forecasting, and much of this book is dedicated to describing various models. Specifying an appropriate model for the data is essential for producing appropriate forecasts. For example, a linear trend model (to be discussed in Chapter 7) for GDP per capita can be specified with:
 
-```{r}
- fit <- gdppc %>%
+```{r Define the model}
+TSLM(GSP_per_capita ~ trend())
+```
+
+## Train the model
+Once an appropriate model is specified, we next train the model on some data. One or more model specifications can be estimated using the model() function.
+
+To estimate the model in our example, we use
+
+```{r Train the model}
+fit <- gdppc %>%
    model(trend_model = TSLM(GDP_per_capita ~ trend()))
 fit
 ```
+
+This fits a linear trend model to the GDP per capita data for each combination of key variables in the tsibble. In this example, it will fit a model to each of the 263 countries in the dataset. The resulting object is a model table or a “mable.”
+
 
 ## Check model performance
 
@@ -48,13 +60,21 @@ Once a model has been fitted, it is important to check how well it has performed
 
 ## Produce forecasts (forecast)
 
-```{r}
+With an appropriate model specified, estimated and checked, it is time to produce the forecasts using `forecast()`. The easiest way to use this function is by specifying the number of future observations to forecast. For example, forecasts for the next 10 observations can be generated using `h = 10`. We can also use natural language; e.g., `h = "2 years"` can be used to predict two years into the future.
+
+```{r Forecast 3 years into the future}
 
 fit %>% forecast(h = "3 years")
+fit
 
 ```
 
-```{r}
+
+This is a forecast table, or “fable.” Each row corresponds to one forecast period for each country. The `GDP_per_capita` column contains the forecast distribution, while the .mean column contains the point forecast. The point forecast is the mean (or average) of the forecast distribution.
+
+The forecasts can be plotted along with the historical data using `autoplot()` as follows:
+
+```{r Figure 5.2: Forecasts of GDP per capita for Sweden using a simple trend model. }
 fit %>% 
   forecast(h = "3 years") %>% 
   filter(Country == "Sweden") %>% 
@@ -62,3 +82,139 @@ fit %>%
   labs(y = "$US", title = "GDP per capita for Sweden")
 ```
 
+# 5.1 Some simple forecasting methods
+
+We will use four simple forecasting methodsas benchmarks throughout this book. To illustrate them, we will use quarterly Australian clay brick production between 1970 and 2004:
+
+```{r Clay brick production}
+# bricks <- aus_production %>% 
+#   filter_index("1970 Q1" ~ "2004 Q4")
+
+bricks <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4")
+
+```
+
+The `filter_index()` function is a convenient shorthand for extracting a section of a time series.
+
+## Mean method
+
+Here, the forecasts of all future values are equal to the average (or “mean”) of the historical data. If we let the historical data be denoted by y1,…,yT, then we can write the forecasts as
+
+$$\hat{y}_{T+h|T}=\bar{y}=(y_1 + ... +y_T)/T$$
+
+```{r Figure 5.3: Mean (or average) forecasts applied to clay brick production in Australia. }
+
+train <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4")
+# Fit the models
+bricks_fit <- train %>%
+  model(
+    Mean = MEAN(Bricks),
+  )
+# Generate forecasts for 23 quarters
+bricks_fc <- bricks_fit %>% forecast(h = 23)
+# Plot forecasts against actual values
+bricks_fc %>%
+  autoplot(train, level = NULL) +
+  labs(
+    y = "Bricks in thousands ('000)",
+    title = "Forecasts for quarterly brick production"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+
+```
+
+
+## Naïve method
+
+For naïve forecasts, we simply set all forecasts to be the value of the last observation. That is,
+
+$$\hat{y}_{T+h|T}=y_T$$
+
+<b>This method works remarkably well for many economic and financial time series.</b>
+
+```{r Figure 5.4: Naïve forecasts applied to clay brick production in Australia. }
+
+train <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4")
+# Fit the models
+bricks_fit <- train %>%
+  model(
+    naive = NAIVE(Bricks),
+  )
+# Generate forecasts for 23 quarters
+bricks_fc <- bricks_fit %>% forecast(h = 23)
+# Plot forecasts against actual values
+bricks_fc %>%
+  autoplot(train, level = NULL) +
+  labs(
+    y = "Bricks in thousands ('000)",
+    title = "Forecasts for quarterly brick production"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+
+
+```
+
+## Seasonal naïve method
+
+A similar method is useful for highly seasonal data. In this case, we set each forecast to be equal to the last observed value from the same season of the year (e.g., the same month of the previous year). Formally, the forecast for time T+h is written as
+
+$$\hat{y}_{T+h|T}=y_{T+h-m(k+1)}$$
+
+where m= the seasonal period, and k is the integer part of (h−1)/m (i.e., the number of complete years in the forecast period prior to time T+h).
+
+```{r Figure 5.5: Seasonal naïve forecasts applied to clay brick production in Australia.}
+
+train <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4")
+# Fit the models
+bricks_fit <- train %>%
+  model(
+    snaive = SNAIVE(Bricks),
+  )
+# Generate forecasts for 23 quarters
+bricks_fc <- bricks_fit %>% forecast(h = 23)
+# Plot forecasts against actual values
+bricks_fc %>%
+  autoplot(train, level = NULL) +
+  labs(
+    y = "Bricks in thousands ('000)",
+    title = "Forecasts for quarterly brick production"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+```
+
+## Drift method
+
+A variation on the naïve method is to allow the forecasts to increase or decrease over time, where the amount of change over time (called the <b>drift</b>) is set to be the average change seen in the historical data. Thus the forecast for time T+h is given by
+
+$$\hat{y}_{T+h|T}=y_T + \frac{h}{T-1}\sum_{t=2}^T(y_t - y_{t-1}) = y_T + h\left( \frac{y_t - y_1}{T-1} \right)$$
+
+This is equivalent to drawing a line between the first and last observations, and extrapolating it into the future.
+
+```{r}
+train <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4")
+# Fit the models
+bricks_fit <- train %>%
+  model(
+    RW(Bricks ~ drift()),
+  )
+# Generate forecasts for 23 quarters
+bricks_fc <- bricks_fit %>% forecast(h = 23)
+# Plot forecasts against actual values
+bricks_fc %>%
+  autoplot(train, level = NULL) +
+  labs(
+    y = "Bricks in thousands ('000)",
+    title = "Forecasts for quarterly brick production"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+```
+
+Conclusion of section 5.2
