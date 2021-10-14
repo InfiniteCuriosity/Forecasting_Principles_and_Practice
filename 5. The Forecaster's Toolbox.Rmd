@@ -236,7 +236,7 @@ $$e_t = y_t - \hat{y_t}$$
 The fitted values and residuals from a model can be obtained using the `augment()` function. In the beer production example in Section 5.2, we saved the fitted models as `beer_fit`. So we can simply apply `augment()` to this object to compute the fitted values and residuals for all models.
 
 ```{r}
-augment(beer_fit)
+augment(bricks_fit)
 ```
 
 There are three new columns added to the original data:
