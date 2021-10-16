@@ -401,7 +401,7 @@ google_2015 %>%
 
 When plotted, the prediction intervals are shown as shaded regions, with the strength of colour indicating the probability associated with the interval. Again, 80% and 95% intervals are shown by default, with other options available via the level argument.
 
-```{r Plotting 80% and 95% prediction intervals based on naïve method}
+```{r}
 
 google_2015 %>% 
   model(NAIVE(Close)) %>% 
@@ -425,7 +425,7 @@ $$y_{T+1} = \hat{y}_{T+1|t} + e_{T+1}$$
 
 Doing this repeatedly, we obtain many possible futures. To see some of them, we can use the `generate()` function:
 
-```{r Using the generate function to obtain five possible futures (note times = 5)}
+```{r Using the generate function to obtain five possible futures}
 
 fit <- google_2015 %>% 
   model(NAIVE(Close))
@@ -468,3 +468,13 @@ autoplot(fc, google_2015) +
 ```
 
 Completion through section 5.5
+
+## Forecasting using transformations
+
+Some common transformations which can be used when modelling were discussed in Section 3.1. When forecasting from a model with transformations, we first produce forecasts of the transformed data. Then, we need to reverse the transformation (or back-transform) to obtain forecasts on the original scale. For Box-Cox transformations given by (3.1), the reverse transformation is given by:
+
+$$y_{t} =
+    \begin{cases}
+      \exp(w_{t}) & \text{if $\lambda=0$};\\
+      \text{sign}(\lambda w_t+1)|\lambda w_t+1|^{1/\lambda} & \text{otherwise}.
+    \end{cases}$$
