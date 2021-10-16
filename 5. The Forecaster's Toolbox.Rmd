@@ -446,10 +446,10 @@ Doing this repeatedly, we obtain many possible futures. To see some of them, we 
 
 ```{r Using the generate function to obtain five possible futures}
 
-fit <-  <-  %>% 
+fit <-google_2015 %>% 
   model(NAIVE(Close))
 sim <- fit %>% generate(h = 30, times = 5, bootstrap = TRUE)
-sim
+
 ```
 
 We can plot the five possible futures, as follows:
@@ -738,7 +738,7 @@ google_fit <- google_2015 %>%
     Drift = RW(Close ~ drift())
 )
 
-google_fc %>% 
+google_fc <- google_fit %>% 
   forecast(google_jan_2016)
 
 google_fc %>% 
@@ -750,4 +750,42 @@ google_fc %>%
 
 ```
 
-Conclusion of Chapter 5 - this went very well, I'm very happy with the results!
+## 5.9 Evaluating distributional forecast accuracy
+
+## Quantile scores
+
+Consider the Google stock price example from the previous section. Figure 5.23 shows an 80% prediction interval for the forecasts from the naïve method:
+
+```{r}
+
+google_fc %>% 
+  filter(.model == "Naïve") %>% 
+  autoplot(bind_rows(google_2015, google_jan_2016), level = 80)+
+             labs(y = "$US",
+                  title = "Google closing stock prices")
+
+```
+
+The lower limit of this prediction interval gives the 10th percentile (or 0.1 quantile) of the forecast distribution, so we would expect the actual value to lie below the lower limit about 10% of the time, and to lie above the lower limit about 90% of the time. When we compare the actual value to this percentile, we need to allow for the fact that it is more likely to be above than below.
+
+More generally, suppose we are interested in the quantile forecast with probability $p$
+at future time $t$, and let this be denoted by $f_{p,t}$. That is, we expect the observation $y_t$ to be less than $f_{p,t}$ with probability $p$. For example, the 10th percentile would be $f_{0.10,t}. If $y_t$ denotes the observation at time $t$, then the <b>Quantile Score</b> is
+
+$$Q_{p,t} = \begin{cases}
+  2(1 - p) \big(f_{p,t} - y_{t}\big), & \text{if $y_{t} < f_{p,t}$}\\
+  2p \big(y_{t} - f_{p,t}\big), & \text{if $y_{t} \ge f_{p,t}$} \end{cases}$$
+    
+The quantile score can be interpreted like an absolute error. In fact, when p=0.5, the quantile score $Q_{0.5,t}$ is the same as the absolute error. For other values of p, the “error” ($y_t−f_{p,t}$) is weighted to take account of how likely it is to be positive or negative. If p>0.5, $Q{p,t}$ gives a heavier penalty when the observation is greater than the estimated quantile than when the observation is less than the estimated quantile. The reverse is true for p<0.5.
+
+## Consinuous Ranked Probability Score
+
+In the Google stock price example, we can compute the average CRPS value for all days in the test set. A CRPS value is a little like a weighted absolute error computed from the entire forecast distribution, where the weighting takes account of the probabilities.
+
+```{r}
+
+google_fc %>% 
+  accuracy(google_stock, list(crps = CRPS))
+
+```
+
+## 5.10 Time series cross-validation
