@@ -264,9 +264,28 @@ google_stock <- gafa_stock %>%
   update_tsibble(index = day, regular = TRUE)
 
 google_2015 <- google_stock %>% filter(year(Date) == 2015)
-autoplot(google_2015, Close) +
+# Fit the models
+google_fit <- google_2015 %>%
+  model(
+    Mean = MEAN(Close),
+    `Naïve` = NAIVE(Close),
+    Drift = NAIVE(Close ~ drift())
+  )
+# Produce forecasts for the trading days in January 2016
+google_jan_2016 <- google_stock %>%
+  filter(yearmonth(Date) == yearmonth("2016 Jan"))
+google_fc <- google_fit %>%
+  forecast(new_data = google_jan_2016)
+# Plot the forecasts
+google_fc %>%
+  autoplot(google_2015, level = NULL) +
+  autolayer(google_jan_2016, Close, colour = "black") +
   labs(y = "$US",
-       title = "Google daily closing stock prices in 2015")
+       title = "Google daily closing stock prices",
+       subtitle = "(Jan 2015 - Jan 2016)") +
+  guides(colour = guide_legend(title = "Forecast"))
+
+
 ```
 
 The residuals obtained from forecasting this series using the naïve method are shown in Figure 5.10. The large positive residual is a result of the unexpected price jump in July.
@@ -427,7 +446,7 @@ Doing this repeatedly, we obtain many possible futures. To see some of them, we 
 
 ```{r Using the generate function to obtain five possible futures}
 
-fit <- google_2015 %>% 
+fit <-  <-  %>% 
   model(NAIVE(Close))
 sim <- fit %>% generate(h = 30, times = 5, bootstrap = TRUE)
 sim
@@ -571,3 +590,164 @@ fit_dcmp %>% gg_tsresiduals()
 ```
 
 Completion through section 5.7
+
+## 5.8 Evaluating point forecast accuracy
+
+### Training and test sets
+
+When choosing models, it is common practice to separate the available data into two portions, training and test data, where the training data is used to estimate any parameters of a forecasting method and the test data is used to evaluate its accuracy. Because the test data is not used in determining the forecasts, it should provide a reliable indication of how well the model is likely to forecast on new data.
+
+The size of the test set is typically about 20% of the total sample, although this value depends on how long the sample is and how far ahead you want to forecast. The test set should ideally be at least as large as the maximum forecast horizon required. The following points should be noted.
+
+•   A model which fits the training data well will not necessarily forecast well.
+•   A perfect fit can always be obtained by using a model with enough parameters.
+•   Over-fitting a model to data is just as bad as failing to identify a systematic pattern in the data.
+
+### Functions to subset a time series
+
+The filter() function is useful when extracting a portion of a time series, such as we need when creating training and test sets. When splitting data into evaluation sets, filtering the index of the data is particularly useful. For example,
+
+```{r Subset a time series, example 1}
+aus_production %>% filter(year(Quarter)>= 1995)
+
+```
+
+Equivalently,
+
+```{r Equivalent way to subset a time series}
+aus_production %>% filter_index("1995 Q1" ~.,)
+# This is equivalent to the previous data set
+
+```
+
+Another useful function is slice(), which allows the use of indices to choose a subset from each group. For example,
+
+```{r Slicing data to subset a time series}
+aus_production %>% 
+  slice(n()-19:0)
+```
+
+will extract the last 20 observations (five years)
+
+Slice also works with groups, making it possible to subset observations from each key. For example:
+
+```{r slicing by groups}
+aus_retail %>% 
+  group_by(State, Industry) %>% 
+  slice(1:12)
+
+```
+
+will subset the first year of data from each time series in the data.
+
+## Forecast errors
+
+A forecast "error" is the difference between an observed value and its forecast. Here "error" does not mean mistake, it means the unpredictable part of an observation. It can be written as:
+
+$$e_{T+h} = y_{T+h} - \hat{y}_{T+h|T} $$
+
+where the training data is given by $\left\{y_1,...y_t \right\}$ and the test data is given by $\left\{ y_{T+1}, y_{T+2}, ...\right\}$
+
+The two most commonly used scale-dependent measures are based on the absolute errors or squared errors:
+
+Mean absolute error: MAE = mean(|$e_t|),
+Root mean squared error: RMSE = $\sqrt{mean(e^2_t)}$
+
+When comparing forecast methods applied to a single time series, or to several time series with the same units, the MAE is popular as it is easy to both understand and compute. <b><mark>A forecast method that minimises the MAE will lead to forecasts of the median, while minimising the RMSE will lead to forecasts of the mean.</mark></b>
+
+## Percentage errors
+
+The percentage error is given by $p_t = 100e_t/y_t$. Percentage errors have the advantage of being unit = free, so are frequently used to compare forecast performances between data sets. The most commonly used measure is:
+
+Mean absolute percentage error: MAPE = mean(|$p_t$|)
+
+## Scaled errors
+
+Scaled errors were proposed by Hyndman & Koehler (2006) as an alternative to using percentage errors when comparing forecast accuracy across series with different units. They proposed scaling the errors based on the <i>training</i> MAE from a simple forecast method.
+
+For a non-seasonal time series, a useful way to define a scaled error uses naïve forecasts:
+
+$$q_j = \frac{e_j}{\frac{1}{T-1} \sum_{t = 2}^T |y_t - y_{t-1} |}$$
+
+A scaled error is less than one if it arises from a better forecast than the average one-step naïve forecast computed on the training data. Conversely, it is greater than one if the forecast is worse than the average one-step naïve forecast computed on the training data
+
+For seasonal time series, a scaled error can be defined using seasonal naïve forecasts:
+
+$$q_j = \frac{e_j}{\frac{1}{T-m}\sum_{t = m+1}^T |y_t - y_{t-m}|}$$
+
+The <i>mean absolute scaled error</i> is simply:
+
+MASE = mean(|$q_j^2$|)
+
+Similarly, the <i>root mean squared scaled error</i> is given by:
+
+RMSSE = $\sqrt{mean(q_j^2)}$
+
+where
+
+$$q_j^2 = \frac{e_j^2}{\frac{1}{T-m} \sum_{t = m+1}^T (y_t - y_{t-m})^2}$$
+
+Examples:
+
+```{r Figure 5.21: Forecasts of Australian quarterly beer production using data up to the end of 2007.}
+
+recent_production <- aus_production %>% 
+  filter(year(Quarter) >= 1992)
+beer_train <- recent_production %>% 
+  filter(year(Quarter) <= 2007)
+
+beer_fit <- beer_train %>% 
+  model(
+    Mean = MEAN(Beer),
+    `Naïve` = NAIVE(Beer),
+    `Seasonal naïve` = SNAIVE(Beer),
+    drift = RW(Beer ~ drift())
+)
+
+beer_fc <- beer_fit %>% 
+  forecast(h = 10)
+beer_fc %>% 
+  autoplot(
+    aus_production %>% filter(year(Quarter) >= 1992),
+    level = NULL
+  ) +
+  labs(
+    y = "Megalitres",
+    title = "Forecasts for quarterly beer production"
+  ) +
+  guides(colour = guide_legend(title = "forecast"))
+
+```
+
+Figure 5.21 shows three forecast methods applied to the quarterly Australian beer production using data only to the end of 2007. The actual values for the period 2008–2010 are also shown. We compute the forecast accuracy measures for this period.
+
+```{r accuracy}
+accuracy(beer_fc, recent_production)
+
+```
+
+It is obvious from the graph that the seasonal naïve method is best for these data, although it can still be improved, as we will discover later. Sometimes, different accuracy measures will lead to different results as to which forecast method is best. However, in this case, all of the results point to the seasonal naïve method as the best of these three methods for this data set.
+
+To take a non-seasonal example, consider the Google stock price. The following graph shows the closing stock prices from 2015, along with forecasts for January 2016 obtained from three different methods.
+
+```{r Google stock prices from January 2015}
+google_fit <- google_2015 %>% 
+  model(
+    Mean = MEAN(Close),
+    `Naïve` = NAIVE(Close),
+    Drift = RW(Close ~ drift())
+)
+
+google_fc %>% 
+  forecast(google_jan_2016)
+
+google_fc %>% 
+  autoplot(bind_rows(google_2015, google_jan_2016),
+    level = NULL) +
+  labs(y = "$US",
+       title = "Google closing stock prices from Jan 2015") +
+  guides(colour = guide_legend(title = "forecast"))
+
+```
+
+Conclusion of Chapter 5 - this went very well, I'm very happy with the results!
