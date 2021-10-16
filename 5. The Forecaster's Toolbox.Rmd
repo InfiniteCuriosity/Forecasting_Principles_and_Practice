@@ -789,3 +789,32 @@ google_fc %>%
 ```
 
 ## 5.10 Time series cross-validation
+
+In the following example, we compare the accuracy obtained via time series cross-validation with the residual accuracy. The `stretch_tsibble()` function is used to create many training sets. In this example, we start with a training set of length `.init=3`, and increasing the size of successive training sets by `.step=1`.
+
+```{r Time series cross-validation accuracy}
+
+google_2015_tr <- google_2015 %>% 
+  stretch_tsibble(.init = 3, .step = 1) %>% 
+  relocate(Date, Symbol, .id)
+google_2015_tr
+
+```
+
+The .id column provides a new key indicating the various training sets. The accuracy() function can be used to evaluate the forecasts accuracy across the training sets.
+
+```{r Time series cross validation accuracy}
+
+google_2015_tr %>% 
+  model(RW(Close ~ drift())) %>% 
+  forecast(h = 1) %>% 
+  accuracy(google_2015)
+
+# Training set accuracy
+google_2015 %>% 
+  model(RW(Close ~ drift())) %>% 
+  accuracy()
+
+```
+
+Completion of chapter 5!
