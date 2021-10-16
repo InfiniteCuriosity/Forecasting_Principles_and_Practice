@@ -347,3 +347,124 @@ augment(fit) %>% features(.innov, ljung_box, lag = 10, dof = 1)
 As with the naïve method, the residuals from the drift method are indistinguishable from a white noise series.
 
 Conclusion of section 5.4
+
+# 5.5 Distribution forecasts and prediction intervals
+
+<b><mark>If we only produce point forecasts, there is no way of telling how accurate the forecasts are. However, if we also produce prediction intervals, then it is clear how much uncertainty is associated with each forecast. For this reason, point forecasts can be of almost no value without the accompanying prediction intervals.</mark></b>
+
+A prediction interval gives an interval within which we expect $$y_t$$ to lie within a specified probability. For example, assuming that distribution of future observations is normal, a 95% prediction interval for the h-step forecast is:
+
+$$\hat{y}_{T+h|T}\pm 1.96\hat{\sigma}_h$$
+
+## One-step prediction intervals
+
+When forecasting one step ahead, the standard deviation of the forecast distrubtion can be estimated using the standard deviation of the residuals given by:
+
+$$\hat{\sigma} = \sqrt{\frac{1}{T - K}\sum_{t=1}^Te^2_t}$$
+
+## Multi-step prediction intervals
+
+A common feature of prediction intervals is that they usually increase in length as the forecast horizon increases. The further ahead we forecast, the more uncertainty is associated with the forecast, and thus the wider the prediction intervals. That is, σh usually increases with h
+
+(although there are some non-linear forecasting methods which do not have this property).
+
+To produce a prediction interval, it is necessary to have an estimate of σh
+. As already noted, for one-step forecasts (h=1), Equation (5.1) provides a good estimate of the forecast standard deviation σ1. For multi-step forecasts, a more complicated method of calculation is required. These calculations assume that the residuals are uncorrelated.
+
+| Benchmark Method | h-step forecast standard deviation |
+|--------------|-----------|
+| Mean | $$\hat{\sigma}_h = \hat{\sigma}\sqrt{1 + \frac{1}{T}}$$  |
+| Naïve |$$\hat{\sigma}_h = \hat{\sigma}\sqrt{h}$$  |
+| Seasonal naïve | $$\hat{\sigma}_h = \hat{\sigma}\sqrt{k + 1}$$ |
+| Drift | $$\hat{\sigma}_h = \hat{\sigma}\sqrt{h(1 + \frac{h}{T})}$$
+
+Prediction intervals can easily be computed for you when using the `fable` package. For example here is the output when using the naïve method for the Google stock price:
+
+```{r Prediction intervals for Google stock price}
+google_2015 %>% 
+  model(NAIVE(Close)) %>% 
+  forecast(h = 10) %>% 
+  hilo()
+
+
+```
+
+The `hilo()` function converts the forecast distributions into intervals. By default, 80% and 95% prediction intervals are returned, although other options are possible via the level argument. For example, here are 90% prediction intervals:
+
+```{r 90% prediction intervals}
+google_2015 %>% 
+  model(NAIVE(Close)) %>% 
+  forecast(h = 10) %>% 
+  hilo(level = 0.90)
+
+```
+
+When plotted, the prediction intervals are shown as shaded regions, with the strength of colour indicating the probability associated with the interval. Again, 80% and 95% intervals are shown by default, with other options available via the level argument.
+
+```{r Plotting 80% and 95% prediction intervals based on naïve method}
+
+google_2015 %>% 
+  model(NAIVE(Close)) %>% 
+  forecast(h = 10) %>% 
+  autoplot(google_2015) + 
+  labs(title="Google daily closing stock price", y = "$US")
+
+```
+
+## Prediction from bootstrapped residuals
+
+A one step error is defined as:
+
+$$e_t = y_t - \hat{y}_{t|t-1}$$
+Simple algebra yields:
+$$y_t = \hat{y}_{t|t-1} + e_t$$
+
+We can simulate the next observation of a time series using:
+
+$$y_{T+1} = \hat{y}_{T+1|t} + e_{T+1}$$
+
+Doing this repeatedly, we obtain many possible futures. To see some of them, we can use the `generate()` function:
+
+```{r Using the generate function to obtain five possible futures (note times = 5)}
+
+fit <- google_2015 %>% 
+  model(NAIVE(Close))
+sim <- fit %>% generate(h = 30, times = 5, bootstrap = TRUE)
+sim
+```
+
+We can plot the five possible futures, as follows:
+
+```{r Plot the five possible futures, based on a naïve model, with bootstrapped residuals}
+
+google_2015 %>% 
+  ggplot(aes(x = day)) +
+  geom_line(aes(y = Close)) +
+  geom_line(aes(y = .sim, colour = as.factor(.rep)),
+            data = sim) +
+  labs(title = "Google daily closing stock price", y = "$US") +
+  guides(colour = "none")
+
+```
+
+Then we can compute prediction intervals by calculating percentiles of the future sample paths for each forecast horizon. The result is called a <b>bootstrapped</b> prediction interval. The name “bootstrap” is a reference to pulling ourselves up by our bootstraps, because the process allows us to measure future uncertainty by only using the historical data.
+
+This is all built into the `forecast()` function so you do not need to call `generate()` directly.
+
+```{r Boostraping using forecast}
+
+fc <- fit %>% forecast(h = 30, bootstrap = TRUE)
+fc
+
+```
+
+Notice that the forecast distribution is now represented as a simulation with 5000 sample paths. Because there is no normality assumption, the prediction intervals are not symmetric.
+
+```{r Figure 5.16: Forecasts of the Google closing stock price based on a naïve method with bootstrapped residuals.}
+
+autoplot(fc, google_2015) +
+  labs(title = "Google daily closing stock price", y = "$US")
+
+```
+
+Completion through section 5.5
