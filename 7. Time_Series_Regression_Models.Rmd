@@ -40,8 +40,6 @@ us_change %>%
   autoplot(value) +
   labs(y = "% change")
 
-View(us_change)
-
 ```
 
 A scatter plot of the consumption changes against income changes is showin in Figure 7.3, along with the estimated regression line:
@@ -295,7 +293,7 @@ augment(fit_consMR) %>%
 
 ```
 
-## Spurios regression
+## Spurious regression
 
 More often than not, time series data are “non-stationary”; that is, the values of the time series do not fluctuate around a constant mean or with a constant variance. We will deal with time series stationarity in more detail in Chapter 9, but here we need to address the effect that non-stationary data can have on regression models.
 
@@ -315,3 +313,114 @@ report(fit)
 ```
 
 Conclusion through section 7.3
+
+## 7.4 Some useful predictors
+
+### Trend
+
+It is common for time series data to be trending. A linear trend can be modelled by simply using $x_{1,t} = t$ as a predictor,
+$$y_t = \beta_0 + \beta_1{t} + \epsilon_t$$
+where $t = 1,...T.$ A trend variable can be specified in the `TSLM()` function using the `trend()` special. In section 7.7 we discuss how we can also model nonlinear trends
+
+### Dummy variables
+
+So far, we have assumed that each predictor takes numerical values. But what about when a predictor is a categorical variable taking only two values (e.g., “yes” and “no”)? Such a variable might arise, for example, when forecasting daily sales and you want to take account of whether the day is a public holiday or not. So the predictor takes value “yes” on a public holiday, and “no” otherwise.
+
+This situation can still be handled within the framework of multiple regression models by creating a “dummy variable” which takes value 1 corresponding to “yes” and 0 corresponding to “no.” A dummy variable is also known as an “indicator variable.”
+
+A dummy variable can also be used to account for an outlier in the data. Rather than omit the outlier, a dummy variable removes its effect. In this case, the dummy variable takes value 1 for that observation and 0 everywhere else. An example is the case where a special event has occurred. For example when forecasting tourist arrivals to Brazil, we will need to account for the effect of the Rio de Janeiro summer Olympics in 2016.
+
+If there are more than two categories, then the variable can be coded using several dummy variables (one fewer than the total number of categories). TSLM() will automatically handle this case if you specify a factor variable as a predictor. There is usually no need to manually create the corresponding dummy variables.
+
+### Example: Australian quarterly beer production
+
+```{r Figure 7.14: Australian quarterly beer production.}
+recent_production <- aus_production %>% 
+  filter(year(Quarter) >= 1992)
+recent_production %>% 
+  autoplot(Beer) +
+  labs(y = "Megalitres", title = "Australian quarterly beer production")
+
+```
+
+We want to forecast the value of future beer production. We can model this data using a regression model with a linear trend and quarterly dummy variables,
+
+$y_t = \beta_0 + \beta_1{t} + \beta_2{d_{2,t}} + \beta_3{d_{3,t}} + \beta_4{d_{4,t}} + \epsilon_t$
+
+where $d_{i,t}$ = 1, if $t$ is in quarter $i$, and $0$ otherwise. The first quarter variable has been omitted, so the coefficients associated with the other quarters are measures of the difference between those quarters and the first quarter.
+
+```{r}
+
+fit_beer <- recent_production %>% 
+  model(TSLM(Beer ~ trend() + season()))
+report(fit_beer)
+
+```
+
+Note that trend() and season() are not standard functions; they are “special” functions that work within the TSLM() model formulae.
+
+There is an average downward trend of -0.34 megalitres per quarter. On average, the second quarter has production of 34.7 megalitres lower than the first quarter, the third quarter has production of 17.8 megalitres lower than the first quarter, and the fourth quarter has production of 72.8 megalitres higher than the first quarter.
+
+```{r Figure 7.15: Time plot of beer production and predicted beer production.}
+
+augment(fit_beer) %>% 
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = Beer, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted")) +
+  scale_color_manual(
+    values = c(Data = "black", Fitted = "#D55E00")
+  ) +
+  labs(y = "Megaliters",
+       title = "Austrailian quarterly beer production") +
+  guides(colour = guide_legend(title = "Series"))
+
+```
+
+```{r}
+augment(fit_beer) %>%
+  ggplot(aes(x = Beer, y = .fitted,
+             colour = factor(quarter(Quarter)))) +
+  geom_point() +
+  labs(y = "Fitted", x = "Actual values",
+       title = "Australian quarterly beer production") +
+  geom_abline(intercept = 0, slope = 1) +
+  guides(colour = guide_legend(title = "Quarter"))
+
+```
+
+## Intervention variables
+
+It is often necessary to model interventions that may have affected the variable to be forecast. For example, competitor activity, advertising expenditure, industrial action, and so on, can all have an effect.
+
+When the effect lasts only for one period, we use a “spike” variable. This is a dummy variable that takes value one in the period of the intervention and zero elsewhere. A spike variable is equivalent to a dummy variable for handling an outlier.
+
+## Distributed lags
+
+It is often useful to include advertising expenditure as a predictor. However, since the effect of advertising can last beyond the actual campaign, we need to include lagged values of advertising expenditure. Thus, the following predictors may be used. 
+$x_1$ = advertising for previous month;
+$x_2$ =advertising for two months previously;
+.
+.
+.
+$x_m$ = advertising for $m% months previously.
+
+$x_{1,t} = sin{\frac{2\pi t}{m}}, x_{2,t} = cos{\frac{2\pi t}{m}}, x_{3,t} = sin{\frac{4\pi t}{m}},$
+$x_{4,t} = sin{\frac{4\pi t}{m}}, x_{5,t} = cos{\frac{6\pi t}{m}}, x_{6,t} = sin{\frac{6\pi t}{m}},$
+
+and so on. If we have monthly seasonality, and we use the first 11 of these predictor variables, then we will get exactly the same forecasts as using 11 dummy variables.
+
+With Fourier terms, we often need fewer predictors than with dummy variables, especially when m is large. This makes them useful for weekly data, for example, where m≈52. For short seasonal periods (e.g., quarterly data), there is little advantage in using Fourier terms over seasonal dummy variables.
+
+These Fourier terms are produced using the fourier() function. For example, the Australian beer data can be modelled like this.
+
+```{r}
+fourier_beer <- recent_production %>% 
+  model(TSLM(Beer ~ trend() + fourier(K = 2)))
+report(fourier_beer)
+```
+
+The `K` argument to `fourier()` specifies how many pairs of sin and cos terms to include. The maximum allowed is $K=\frac{m}{2}$ where $m$is the seasonal period. Because we have used the maximum here, the results are identical to those obtained when using seasonal dummy variables.
+
+If only the first two Fourier terms are used ($x_{1,t} \text{ and } x_{2,t}$), the seasonal pattern will follow a simple sine wave. A regression model containing Fourier terms is often called a harmonic regression because the successive Fourier terms represent harmonics of the first two Fourier terms.
+
+Conclusion through section 7.4
