@@ -221,3 +221,6 @@ The standard error is related to the size of the average error that the model pr
 to gain some perspective on the accuracy of the model.
 
 The standard error will be used when generating prediction intervals, discussed in Section 7.6.
+
+# 7.3 Evaulating the regression model
+
