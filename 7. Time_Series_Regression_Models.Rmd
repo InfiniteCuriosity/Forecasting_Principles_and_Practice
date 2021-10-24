@@ -651,3 +651,118 @@ us_change %>%
 ```
 
 Completion through section 7.6, I feel very good about the scenario methods and solutions here, they are incredibly strong and useful.
+
+# 7.7 Nonlinear regression
+
+Although the linear relationship assumed so far in this chapter is often adequate, there are many cases in which a nonlinear functional form is more suitable. To keep things simple in this section we assume that we only have one predictor $x$.
+
+The simplest way of modelling a nonlinear relationship is to transform the forecast variable $y$
+and/or the predictor variable $x$ before estimating a regression model. While this provides a non-linear functional form, the model is still linear in the parameters. The most commonly used transformation is the (natural) logarithm (see Section 3.1).
+
+A <b>log-log</b> functional form is specified as:
+
+$\text{log}{y} = \beta_0 + \beta{1}\text{ log } x + \epsilon$
+
+n this model, the slope $\beta_1$ can be interpreted as an elasticity: $\beta_1$ is the average percentage change in $y$ resulting from a 1% increase in $x$. Other useful forms can also be specified. The <b>log-linear</b> form is specified by only transforming the forecast variable and the <b>linear-log</b> form is obtained by transforming the predictor.
+
+Recall that in order to perform a logarithmic transformation to a variable, all of its observed values must be greater than zero. In the case that variable x contains zeros, we use the transformation log(x+1); i.e., we add one to the value of the variable and then take logarithms. This has a similar effect to taking logarithms but avoids the problem of zeros. It also has the neat side-effect of zeros on the original scale remaining zeros on the transformed scale.
+
+There are cases for which simply transforming the data will not be adequate and a more general specification may be required. Then the model we use is:
+
+$y = f(x) + \epsilon$
+
+where $f$ is a nonlinear function. In standard (linear) regressoin, $f(x) = \beta_0 + \beta_1 x$. In the specification of nonlinear regression that follows, we allow f to be a more flexible nonlinear function of x, compared to simply a logarithmic or other transformation.
+
+One of the simplest specifications is to make $f$ piecewise linear. That is, we introduce points where the slope of $f$ can change. These points are called knots. This can be achieved by letting $x_{1,t} = x$ and introducing variable $x_{2,t}$ such that
+
+$x_{2,t} = (x - c)_+ = \begin{cases}{0 \text{ if } x<c}\\{x - c} \text{ if } \geq{c}  \end{cases}$
+
+The notation $(x - c)_+$ means the value x−c if it is positive and 0 otherwise. This forces the slope to bend at point c. Additional bends can be included in the relationship by adding further variables of the above form.
+
+Piecewise linear relationships constructed in this way are a special case of regression splines. In general, a linear regression spline is obtained using:
+
+$x_1 = x \quad x_2 = (x - c_1)_+ \quad ... \quad x_k = (x - c_{k-1})_+$
+
+where $c_1,...c_{k-1}$ are the knots (the points at which the line can bend). Selecting the number of knots $(k−1)$ and where they should be positioned can be difficult and somewhat arbitrary. Some automatic knot selection algorithms are available, but are not widely used.
+
+## Forecasting with a nonlinear trend
+
+We can think of this as a nonlinear trend constructed of linear pieces. If the trend bends at time $\tau$, then it can be specified by simply replacing $x = t$ and $c = \tau$ above such that we include the predictors:
+
+$x_{1,t} = t$
+$x_{2,t} = (t - \tau)_+ = \begin{cases}0 \quad \quad \text{ if } t < \tau \\t - \tau \quad \text{if } t \geq \tau \end{cases}$
+
+### Example: Boston marathon winning times
+
+We will fit some trend models to the Boston marathon winning times for men. First we extract the men’s data and convert the winning times to a numerical value. The course was lengthened (from 24.5 miles to 26.2 miles) in 1924, which led to a jump in the winning times, so we only consider data from that date onwards.
+
+```{r}
+boston_men <- boston_marathon %>% 
+  filter(Year >= 1924) %>% 
+  filter(Event == "Men's open division") %>% 
+  mutate(Minutes = as.numeric(Time)/60) %>% 
+  select(Year, Minutes)
+
+boston_men <- as_tsibble(boston_men)
+
+autoplot(boston_men) +
+  geom_smooth(method = 'lm') +
+  labs(title = "Boston marathon winning times")
+```
+
+
+
+```{r Figure 7.20: Fitting a linear trend to the Boston marathon winning times is inadequate}
+
+boston_men <- boston_marathon %>% 
+  filter(Year >= 1924) %>% 
+  filter(Event == "Men's open division") %>% 
+  mutate(Minutes = as.numeric(Time)/60) %>% 
+  select(Year, Minutes)
+
+boston_men <- as_tsibble(boston_men)
+
+aug <- boston_men %>% 
+  model(NAIVE(Minutes)) %>% 
+  augment()
+
+aug %>% 
+  ACF(.innov) %>% 
+  autoplot()
+
+boston_men %>% 
+  model(MEAN(Minutes)) %>% 
+  gg_tsresiduals()
+
+```
+
+Fitting an exponential trend (equivalent to a log-linear regression) to the data can be achieved by transforming the $y$ variable so that the model to be fitted is:
+
+$\text{log } y_t = \beta_0 + \beta_1 t + \epsilon_t$
+
+The plot of winning times reveals three different periods. There is a lot of volatility in the winning times up to about 1950, with the winning times barely declining. After 1950 there is a clear decrease in times, followed by a flattening out after the 1980s, with the suggestion of an upturn towards the end of the sample. To account for these changes, we specify the years 1950 and 1980 as knots. We should warn here that subjective identification of knots can lead to over-fitting, which can be detrimental to the forecast performance of a model, and should be performed with caution.
+
+```{r Figure 7.21: Projecting forecasts from linear, exponential and piecewise linear trends for the Boston marathon winning times.}
+
+fit_trends <- boston_men %>% 
+  model(
+    linear = TSLM(Minutes ~ trend()),
+    exponential = TSLM(log(Minutes) ~ trend()),
+    piecewise = TSLM(Minutes ~ trend(knots = c(1950, 1980)))
+  )
+
+fc_trends <- fit_trends %>% forecast(h = 10)
+
+boston_men %>% 
+  autoplot(Minutes) +
+  geom_line(data = fitted(fit_trends),
+            aes(y = .fitted, colour = .model)) +
+  autolayer(fc_trends, alpha = 0.5, level = 95) +
+  labs(y = "Minutes",
+       title = "Boston marathon winning times")
+
+```
+
+Figure 7.21 shows the fitted lines and forecasts from linear, exponential and piecewise linear trends. The best forecasts appear to come from the piecewise linear trend.
+
+Completion through section 7.7!
