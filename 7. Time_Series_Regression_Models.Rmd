@@ -229,4 +229,36 @@ The differences between the observed y values and the corresponding fitted ^y va
 $ e_t = y_t - \hat{y_t}$
 $\text{   } = y_t - \hat{\beta_1{x_{1,t}}} - \hat{\beta_2{x_{2,t}}} - ... - \hat{\beta_k{x_{k,t}}}$
 
-for $t = 1,...T.$ Each residula is the unpredictable component of the associated observation.
+for $t = 1,...T.$ Each residual is the unpredictable component of the associated observation.
+
+As a result of these properties, it is clear that the average of the residuals is zero, and that the correlation between the residuals and the observations for the predictor variable is also zero. (This is not necessarily true when the intercept is omitted from the model.)
+
+## ACF plot of residuclas
+
+With time series data, it is highly likely that the value of a variable observed in the current time period will be similar to its value in the previous period, or even the period before that, and so on. Therefore when fitting a regression model to time series data, it is common to find autocorrelation in the residuals. In this case, the estimated model violates the assumption of no autocorrelation in the errors, and our forecasts may be inefficient — there is some information left over which should be accounted for in the model in order to obtain better forecasts. The forecasts from a model with autocorrelated errors are still unbiased, and so are not “wrong,” but they will usually have larger prediction intervals than they need to. Therefore we should always look at an ACF plot of the residuals.
+
+## Histogram of residuals
+
+It is always a good idea to check whether the residuals are normally distributed. As we explained earlier, this is not essential for forecasting, but it does make the calculation of prediction intervals much easier.
+
+### Example
+using the `gg_tsresiduals()` function introduced in Section 5.3, we can obtain all the useful residual diagnostics mentioned above:
+
+```{r  Figure 7.8: Analysing the residuals from a regression model for US quarterly consumption.}
+
+fit_consMR %>% gg_tsresiduals()
+
+```
+
+```{r}
+
+augment(fit_consMR) %>% 
+  features(.innov, ljung_box, lag = 10, dof = 5)
+```
+
+The time plot shows some changing variation over time, but is otherwise relatively unremarkable. This heteroscedasticity will potentially make the prediction interval coverage inaccurate.
+
+The histogram shows that the residuals seem to be slightly skewed, which may also affect the coverage probability of the prediction intervals.
+
+## Residual plot against predictors
+
