@@ -528,7 +528,7 @@ An approach that works quite well is backwards stepwise regression:
 •    Remove one predictor at a time. Keep the model if it improves the measure of predictive accuracy.
 •    Iterate until no further improvement.
 
-If the number of potential predictors is too large, then the backwards stepwise regression will not work and <i>forward stepwise regression<i> can be used instead. This procedure starts with a model that includes only the intercept. Predictors are added one at a time, and the one that most improves the measure of predictive accuracy is retained in the model. The procedure is repeated until no further improvement can be achieved.
+If the number of potential predictors is too large, then the backwards stepwise regression will not work and <i>forward stepwise regression</i> can be used instead. This procedure starts with a model that includes only the intercept. Predictors are added one at a time, and the one that most improves the measure of predictive accuracy is retained in the model. The procedure is repeated until no further improvement can be achieved.
 
 ### Beware of inference <b>after</b> selecting predictors
 
@@ -630,7 +630,7 @@ $\hat{y_t} = 0.54 + 0.27x_t$
 
 Assuming that for the next four quarters, personal income will increase by its historical mean value of $\bar{x}$=0.73%, consumption is forecast to increase by 0.74% and the corresponding 80% and 95% prediction intervals are [−0.02,1.5] and [−0.42,1.9] respectively (calculated using R). If we assume an extreme increase of 12% in income, then the prediction intervals are considerably wider as shown in Figure 7.19.
 
-```{r igure 7.19: Prediction intervals if income is increased by its historical mean of 0.73% versus an extreme increase of 12%.}
+```{r figure 7.19: Prediction intervals}
 
 fit_cons <- us_change %>% 
   model(TSLM(Consumption ~ Income))
@@ -766,3 +766,96 @@ boston_men %>%
 Figure 7.21 shows the fitted lines and forecasts from linear, exponential and piecewise linear trends. The best forecasts appear to come from the piecewise linear trend.
 
 Completion through section 7.7!
+
+# 7.8 Correlation, causation and forecasting
+
+## Correlation is <b>NOT</b> causation
+
+It is important not to confuse correlation with causation, or causation with forecasting. A variable x may be useful for forecasting a variable y, but that does not mean x is causing y. It is possible that x is causing y, but it may be that y is causing x
+
+, or that the relationship between them is more complicated than simple causality.
+
+For example, it is possible to model the number of drownings at a beach resort each month with the number of ice-creams sold in the same period. The model can give reasonable forecasts, not because ice-creams cause drownings, but because people eat more ice-creams on hot days when they are also more likely to go swimming. So the two variables (ice-cream sales and drownings) are correlated, but one is not causing the other. They are both caused by a third variable (temperature). This is an example of “confounding” — where an omitted variable causes changes in both the response variable and at least one predictor variables.
+
+We describe a variable that is not included in our forecasting model as a <b>confounder</b> when it influences both the response variable and at least one predictor variable. Confounding makes it difficult to determine what variables are causing changes in other variables, but it does not necessarily make forecasting more difficult.
+
+Similarly, it is possible to forecast if it will rain in the afternoon by observing the number of cyclists on the road in the morning. When there are fewer cyclists than usual, it is more likely to rain later in the day. The model can give reasonable forecasts, not because cyclists prevent rain, but because people are more likely to cycle when the published weather forecast is for a dry day. In this case, there is a causal relationship, but in the opposite direction to our forecasting model. The number of cyclists falls because there is rain forecast. That is, $y$ (rainfall) is affecting $x$ (cyclists).
+
+It is important to understand that correlations are useful for forecasting, even when there is no causal relationship between the two variables, or when the causality runs in the opposite direction to the model, or when there is confounding.
+
+However, often a better model is possible if a causal mechanism can be determined. A better model for drownings will probably include temperatures and visitor numbers and exclude ice-cream sales. A good forecasting model for rainfall will not include cyclists, but it will include atmospheric observations from the previous few days.
+
+## Forecasting with correlated predictors
+
+When two or more predictors are highly correlated it is always challenging to accurately separate their individual effects. Suppose we are forecasting monthly sales of a company for 2012, using data from 2000–2011. In January 2008, a new competitor came into the market and started taking some market share. At the same time, the economy began to decline. In your forecasting model, you include both competitor activity (measured using advertising time on a local television station) and the health of the economy (measured using GDP). It will not be possible to separate the effects of these two predictors because they are highly correlated.
+
+Having correlated predictors is not really a problem for forecasting, as we can still compute forecasts without needing to separate out the effects of the predictors. However, it becomes a problem with scenario forecasting as the scenarios should take account of the relationships between predictors. It is also a problem if some historical analysis of the contributions of various predictors is required.
+
+## Multicollinearity and forecasting
+
+A closely related issue is <b>multicollinearity</b>, which occurs when similar information is provided by two or more of the predictor variables in a multiple regression.
+
+It can occur when two predictors are highly correlated with each other (that is, they have a correlation coefficient close to +1 or -1). In this case, knowing the value of one of the variables tells you a lot about the value of the other variable. Hence, they are providing similar information. For example, foot size can be used to predict height, but including the size of both left and right feet in the same model is not going to make the forecasts any better, although it won’t make them worse either.
+
+Multicollinearity can also occur when a linear combination of predictors is highly correlated with another linear combination of predictors. In this case, knowing the value of the first group of predictors tells you a lot about the value of the second group of predictors. Hence, they are providing similar information.
+
+If there is high correlation (close to but not equal to +1 or -1), then the estimation of the regression coefficients is computationally difficult. In fact, some software (notably Microsoft Excel) may give highly inaccurate estimates of the coefficients. Most reputable statistical software will use algorithms to limit the effect of multicollinearity on the coefficient estimates, but you do need to be careful. The major software packages such as R, SPSS, SAS and Stata all use estimation algorithms to avoid the problem as much as possible.
+
+When multicollinearity is present, the uncertainty associated with individual regression coefficients will be large. This is because they are difficult to estimate. Consequently, statistical tests (e.g., t-tests) on regression coefficients are unreliable. (In forecasting we are rarely interested in such tests.) Also, it will not be possible to make accurate statements about the contribution of each separate predictor to the forecast.
+
+Forecasts will be unreliable if the values of the future predictors are outside the range of the historical values of the predictors. For example, suppose you have fitted a regression model with predictors x1
+and x2 which are highly correlated with each other, and suppose that the values of x1 in the training data ranged between 0 and 100. Then forecasts based on x1>100 or x1<0
+
+will be unreliable. It is always a little dangerous when future values of the predictors lie much outside the historical range, but it is especially problematic when multicollinearity is present.
+
+Note that if you are using good statistical software, if you are not interested in the specific contributions of each predictor, and if the future values of your predictor variables are within their historical ranges, there is nothing to worry about — multicollinearity is not a problem except when there is perfect correlation.
+
+# 7.9 Matrix formulation
+
+Recall that multiple regression model can be written as:
+
+$y_t = \beta_0 + \beta_1 x_{1,t} + \beta_2 x_{2,t} + ... + \beta_k x_{k,t} + \epsilon_t$
+
+where $epsilon_t$ has mean zero and variance $\sigma^2$. This expresses the relationship between a single value of the forecast vairable and the predictors.
+
+It can be convenient to write this in matrix form where all the values of the forecast variable are given in a single equation. Let $\textbf{y} = (y_1,...,y_T)', \beta = (\beta_0,...,\beta_k)' and$
+
+$\textbf{X} = \begin{bmatrix}1 \quad x_{1,1} \quad x_{2,1} \quad ... \quad x_{k,1}\\1 \quad x_{1,2} \quad x_{2,2}, \quad ... \quad x_{k,2}\\ .\quad \quad . \quad \quad . \quad \quad . \quad \\ .\quad \quad . \quad \quad . \quad \quad . \quad \\.\quad \quad . \quad \quad . \quad \quad . \quad \\1 \quad x_{1,T} \quad x_{2,T} \quad ... \quad x_{k,T} \end{bmatrix}$
+
+where ${\epsilon}$ has mean 0 and variance $\sigma^2\textbf{I}$. Note that the $\textbf{X}$ matrix has T rows reflecting the number of observations and k+1 columns reflecting the intercept which is represented by the column of ones plus the number of predictors.
+
+## Least squares estimation
+
+Least squares estimation is performed by minimising the expression $\epsilon'\epsilon = (\textbf{y} - \textbf{X}\beta)'(\textbf{y} - \textbf{X}\beta}$ It can be shown that this is minimixed when $\beta$ takes the value:
+
+$\hat{\beta} = (\textbf{X'X})^{-1}^\textbf{Xy}$
+
+The residual variance is estimated using:
+
+$\hat{\sigma}_e^2 = \frac{1}{T - k - 1}(\textbf{y} - \textbf{X}\hat{\beta})' (\textbf{y - X}\beta)$
+
+## Fitted values and cross-validation
+
+The normal equation shows that the fitted values can be calculated using
+
+$\hat{\textbf{y}} = \textbf{X}\hat{\beta} = {X(X'X)^{-1}}X'y = Hy$
+
+where $H = X(X'X)^{-1}X'$ is known as the "hat-matrix" because it is used to compute $\hat{y}$
+
+If the diagonal values of H are denoted by $h_1,...h_T,$ then the cross-validation statistic can be computed using:
+
+$CV = \frac{1}{T}\sum_{t=1}^t [\frac{e_t}{1 - h_t}]^2$
+
+where e_t is the residula obtained by fitting the model to all $T$ observations. Thus, it is not necessary to actually fit $T$ separater models when computing the CV statistic.
+
+## Forecasts and prediction intervals
+
+Let $x^*$  be a row vector containing the values of the predictors (in the same format as X) for which we want to generate a forecast. Then the forecast is given by:
+
+$\hat{y} = x*\hat{\beta} = x*(X'X)^{-1}X'y$
+
+The estimated variance is given by:
+
+$\hat{\sigma_e}^2[1 + x*(X'X)^{-1}X'y]$
+
+Completion of chapter 7!
