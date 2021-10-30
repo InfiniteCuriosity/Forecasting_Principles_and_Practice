@@ -1,0 +1,310 @@
+---
+title: "8. Exponential Smoothing"
+author: "Russ Conte"
+date: "10/30/2021"
+output: html_document
+---
+
+The simplest of the exponentially smoothing methods is naturally called <b>simple exponential smoothing (SES)</b>. This method is suitable for forecasting data with no clear trend or seasonal pattern. For example, the data in Figure 8.1 do not display any clear trending behaviour or any seasonality. (There is a decline in the last few years, which might suggest a trend. We will consider whether a trended method would be better for this series later in this chapter.) We have already considered the naïve and the average as possible methods for forecasting such data (Section 5.2).
+
+```{r Figure 8.1: Exports of goods and services from Algeria from 1960 to 2017.}
+library(fpp3)
+library(tidyverse)
+algeria_economy <- global_economy %>% 
+  filter(Country == "Algeria")
+algeria_economy %>% 
+  autoplot(Exports) +
+  labs(y = "% of GDP", title = "Exports: Algeria")
+
+```
+
+Using the naïve method, all forecasts for the future are equal to the last observed value of the series,
+
+$\hat{y}_{T+h|T} = \frac{1}{T} \sum_{t = 1}^T y_t$
+
+for $h = 1, 2, ....$ Hence, the average method assumes that all observations are of equal importance, and gives them equal weights when generating forecasts.
+
+We often want something between these two extremes. For example, <mark>it may be sensible to attach larger weights to more recent observations than to observations from the distant past. This is exactly the concept behind simple exponential smoothing. Forecasts are calculated using weighted averages, where the weights decrease exponentially as observations come from further in the past — the smallest weights are associated with the oldest observations. </mark>
+
+$\hat{y}_{T+1|T} = \alpha y_T + \alpha(1 - \alpha)y_{T - 1} + \alpha(1 - \alpha)^2y_{T-2} + ...,$
+
+where $0 \le \alpha \le 1$ is the smoothing parameter.The one-step-ahead forecast for time $T + 1$ is a weighted average of all of the observations in the series $y_1, ... y_T$ . The rate at which the weights decrease is controlled by the parameter $\alpha$.
+
+The table below shows the weights attached to observations for four different values of $\alpha $ when forecasting using simple exponential smoothing. Note that the sum of the weights even for a small value of $\alpha$ will be approximately one for any reasonable sample size.
+
+||$\alpha$=0.2|$\alpha$=0.4|$\alpha$=0.6|$\alpha$ = 0.8|
+|:-----:|:---------:|:---------:|:---------:|:---------:|:---------:|
+|$y_t$|0.2000|0.4000|0.600|0.800|
+|$y_{T-1}$|0.1600|0.2400|0.2400|0.1600|
+|$y_{T-2}$|0.1280|0.1440|0.0960|0.0320|
+|$y_{T-3}$|0.1024|0.0864|0.0384|0.0064|
+|$y_{T-4}$|0.0819|0.0518|0.0154|0.0013|
+|$y_{T-5}$|0.0655|0.0311|0.0061|0.0003|
+
+For any $\alpha$ between 0 and 1, the weights attached to the observations decrease exponentially as we go back in time, hence the name “exponential smoothing.” If $\alpha$ is small (i.e., close to 0), more weight is given to observations from the more distant past. If $\alpha$ is large (i.e., close to 1), more weight is given to the more recent observations. For the extreme case where $\alpha = 1, \hat{y}_{T+1|T} = y_T$, and the forecasts are equal to the naïve forecasts.
+
+## Weighted average form
+
+The forecast at time $T + 1$ is equal to a weighted average between themost recen tobservation, $t_T$ and the previous forecast $\hat{y}_{T|T-1}$:
+
+$\hat{y}_{T+1} = \alpha y_T + (1 - \alpha) \hat{y}_{T|T-1}$
+
+where $\alpha$ is the smoothing parameter. Similary, we can write the fitted values as:
+
+$\hat{y}_{t+1|t} = \alpha y_t + (1 - \alpha) \hat{y}_{t|{t-1}}$
+
+for $t = 1, ...T$. (Recall that fitted values are simply one step forecasts of the training data.)
+
+The process has to start somewhere, so we let the first fitted value at time 1 be denoted by $\ell_0$, which we will have to estimate. Then:
+
+$\hat{y}_{2|1} = \alpha y_1 + (1 - \alpha) \ell_0$<br>
+$\hat{y}_{3|2} = \alpha y_2 + (1 - \alpha) \hat{y}_{2|1}$<br>
+$\hat{y}_{4|3} = \alpha y_2 + (1 - \alpha) \hat{y}_{3|2}$<br>
+.
+.
+.
+$\hat{y}_{T|{T-1}} = \alpha y_{T-1} + (1 - \alpha) \hat{y}_{T-1|T-2}$<br>
+$\hat{y}_{T+1|T} = \alpha y_{T} + (1 - \alpha) \hat{y}_{T|T-1}$<br>
+<br>
+.<br>
+.<br>
+.<br>
+<br>
+$\hat{y}_{T+1|t} = \sum_{j=0}^{T-1} \alpha(1 - \alpha)^j y_{T-j} + (1 - \alpha)^T \ell_0$
+
+## Component form
+
+An alternative representation is the component form. For simple exponential smoothing, the only component included is the level $\ell_t$,(Other methods which are considered later in this chapter may also include a trend $b_t$ and a seasonal component $s_t$.) Component form representations of exponential smoothing methods comprise a forecast equation and a smoothing equation for each of the components included in the method. The component form of simple exponential smoothing is given by:
+
+$\text{Forecast equation  } \hat{y}_{t+h|t} = \ell_t$<br>
+$\text{Smoothing equation  } \ell_t = \alpha y_t + (1 - \alpha) \ell_{t_1}$
+
+where $\ell_t$ is the level (or the smoothed value) of the series at time $t$ Setting $h = 1$ gives the fitted values, while setting $t = T$ gives the true forecast beyond the training data.
+
+The forecast equation shows that the forecast value at time $t + 1$ is the estimated level at time $t$. The smoothing equation for the level (usually referred to as the level equation) gives the estimated level of the series at each period $t$.
+
+If we replace $\ell_t$ with $\hat{y}_{t+1|t}$ and $\ell_{t-1}$ with $\hat{y}_{t|t-1}$ in the smoothing equation, we will recover the weighted average form of simple exponential smoothing.
+
+The component form of simple exponential smoothing is not particularly useful on its own, but it will be the easiest form to use when we start adding other components.
+
+## Optimisation
+
+The application of every exponential smoothing method requires the smoothing parameters and the initial values to be chosen. In particular, for simple exponential smoothing, we need to select the values of $\alpha$ and $\ell_0$. All forecasts can be computed from the data once we know those values. For the methods that follow there is usually more than one smoothing parameter and more than one initial component to be chosen.
+
+In some cases, the smoothing parameters may be chosen in a subjective manner — the forecaster specifies the value of the smoothing parameters based on previous experience. However, a more reliable and objective way to obtain values for the unknown parameters is to estimate them from the observed data.
+
+In Section 7.2, we estimated the coefficients of a regression model by minimising the sum of the squared residuals (usually known as SSE or “sum of squared errors”). Similarly, the unknown parameters and the initial values for any exponential smoothing method can be estimated by minimising the SSE. The residuals are specified as $e_t = y_t - \hat{y}_{t|t-1}$ for $t = 1,...T$. Hence, we find the values of the unknown parameters and the initial values that minimise
+
+$SSE = \sum_{t=1}^T (y_t - \hat{y}_{t|{t-1}})^2 = \sum_{t = 1}^T e_t^2$
+
+Unlike the regression case (where we have formulas which return the values of the regression coefficients that minimise the SSE), this involves a non-linear minimisation problem, and we need to use an optimisation tool to solve it.
+
+## Algerian exports
+
+In this example, simple exponential smoothing is applied to forecast exports of goods and services from Algeria.
+
+```{r Algerian exports example, using exponential smoothing}
+# Estimate parameters
+fit <- algeria_economy %>% 
+  model(ETS(Exports ~ error("A") + trend("N") + season("N")))
+
+forecast1 <- fit %>% 
+  forecast(h = 5)
+
+forecast1
+report(fit)
+
+```
+
+This gives parameter estimates $\hat{\alpha} = 0.8399875$ and $\hat{\ell_0} = 39.5$ obtained by minimising SSE over periods $t = 1, 2, ... 58$, subject to the restriction that $0 \le \alpha \le 1$
+
+In Table 8.1 we demonstrate the calculation using these parameters. The second last column shows the estimated level for times $t = 0$ to $t = 58$; the last few rows of the last column show the forecasts for $h = 1\text{ to }5$-steps ahead.
+
+Table 8.1: Forecasting goods and services exports from Algeria using simple exponential smoothing.
+
+|<b>Year|Time|Observation|Level|Forecast</b>|
+|:----------:|:----------:|:----------:|:----------:|:----------:|
+||$t$|$y_t$|$\ell_t$|$\hat{y}_{t|{t-1}}$|
+|1959|0||39.54||
+|1960|1|39.04|39.12|39.54|
+|1961|	2	|46.24	|45.10	39.12|
+|1962	|3|	19.79|	23.84	|45.10|
+|1963|	4	|24.68	|24.55|	23.84|
+|1964 |	5|	25.08|	25.00|	24.55|
+|2014|	55	|30.22|	30.80	|33.85|
+|2015|	56	|23.17	|24.39|	30.80|
+|2016	|57	|20.86	|21.43	|24.39|
+|2017	|58	|22.64	|22.44	|21.43|
+||$h$|||$\hat{y}_{T+h|T}$|
+|2018|1|||22.44|
+|2019|2|||22.44|
+|2020|3|||22.44|
+|2021|4|||22.44|
+
+The black line in Figure 8.2 sows the data, which has a changing value over time.
+
+```{r Figure 8.2: Simple exponential smoothing applied to exports from Algeria (1960–2017). The orange curve shows the one-step-ahead fitted values.}
+
+forecast1 %>% 
+  autoplot(algeria_economy)+
+  geom_line(aes(y = .fitted), col = "#D55E00", data = augment(fit)) +
+  labs(y = "% change of GDP", title = "Exports: Algeria") +
+  guides(colour = "none")
+
+```
+
+The forecasts for the period 2018–2022 are plotted in Figure 8.2. Also plotted are one-step-ahead fitted values alongside the data over the period 1960–2017. The large value of $\alpha$in this example is reflected in the large adjustment that takes place in the estimated level $\ell_t$at each time. A smaller value of $\alpha$would lead to smaller changes over time, and so the series of fitted values would be smoother.
+
+The prediction intervals shown here are calculated using the methods described in Section 8.7. The prediction intervals show that there is considerable uncertainty in the future exports over the five-year forecast period. So interpreting the point forecasts without accounting for the large uncertainty can be very misleading.
+
+## 8.2 Methods with trend
+
+Holt (1957) extended simple exponential smoothing to allow the forecasting of data with a trend. This method involves a forecast equation and two smoothing equations (one for the level and one for the trend):
+
+$\text{Forecast equation  } \hat{y}_{t+h|t} = \ell_t + h b_t$<br>
+$\text{Level equation  } \ell_t = \alpha y_t + (1 - \alpha)(\ell{t-1} + b_{t-1})$<br>
+$\text{Trend equation   } b_t = \beta^* (\ell_t - \ell_{t-1}) + (1 - \beta^*)b_{t-1}$<br>
+
+where $\ell_t$ denotes an estiamte of the level of the series at time $t, b_t$ denotes an estimate of the trend (slope) of the series at time $t, \alpha$ is the smoothing parameter for the level $0 \le \alpha \le 1$ and $\beta^*$ is the smoothing paramter for the trend, $0 \le \beta^* \le 1$.
+
+As with simple expoential smoothing, the level equation here shows that $\ell_t$ is a weighted average of ovservation $y_t$ and the one-step-ahead trainig forecast for time $t$, here given by $\ell_{t-1} + b_{t-1}$. The trend equation shows that $b_t$ is a weighted average of the estimated trend at time $t$ based on $\ell_t - \ell_{t-1}$ and $b_{t-1}$, the previous estimate of the trend.
+
+The forecast function is no longer flat but trending. The $h$-step-ahead forecast is equal to the last estimated level plus $h$  times the last estimated trend value. Hence the forecasts are a linear function of $h$.
+
+## Example: Australian population
+
+```{r Figure 8.3: Australia’s population, 1960-2017.}
+aus_economy <- global_economy %>% 
+  filter(Code == "AUS") %>% 
+  mutate(Pop = Population / 1e6)
+autoplot(aus_economy, Pop) +
+  labs("y = Millions", title = "Australian population")
+
+```
+
+Figure 8.3 shows Australia’s annual population from 1960 to 2017. We will apply Holt’s method to this series. The smoothing parameters, $\alpha$ and $\beta^*$, and the initial values $\ell_0$ and $b_0$are estimated by minimising the SSE for the one-step training errors as in Section 8.1.
+
+```{r Apply Holt\'s method to the series}
+fit <- aus_economy %>% 
+  model(
+    AAN = ETS(Pop ~ error("A") + trend("A") + season("N"))
+    )
+forecast2 <- fit %>% forecast(h = 10)
+forecast2
+
+```
+
+Table 8.2 Forecasting Australian annual population using Holt's linear trend method
+
+|Year|Time|Observation|Level|Slope|Forecast|Difference|
+|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
+||$t$|$y_t$|$\ell_t$||$\hat{y}_{t+1|t}$||
+|1959|0||10.05|0.22||
+|1960|1|10.28|10.28|0.22|10.20|0
+|1961|2|10.28|10.48|0.22|10.50|0.02|
+|1962	|3	|10.74	|10.74	|0.23	|10.70|-0.04|
+|1963	|4	|10.95|	10.95|	0.22	|10.97|+0.02|
+|1964|	5|	11.17|	11.17|	0.22	|11.17|0|
+|1965|	6	|11.39	|11.39|	0.22|	11.39|0|
+|1966|	7	|11.65	|11.65|	0.23|	11.61|+.04|
+|2014|	55	|23.50	|23.50|	0.37|	23.52|-0.02|
+|2015|	56	|23.85	|23.85	|0.36	|23.87|0.02|
+|2016	|57	|24.21	|24.21	|0.36	|24.21|0|
+|2017	|58	|24.60	|24.60	|0.37	|24.57|-0.03|
+||$h$||||$\hat{y}_{T=h|T}$||
+|2018|1||||24.97||
+|2019|2||||25.34||
+|2020|3||||25.71||
+|2021|4||||26.07||
+|2022|5||||26.44||
+|2023|6||||26.81||
+|2024|7||||27.18||
+|2025|8||||27.55||
+|2026|9||||27.92||
+|2-27|10||||28.29||
+
+The forecasts generated by Holt’s linear method display a constant trend (increasing or decreasing) indefinitely into the future. Empirical evidence indicates that these methods tend to over-forecast, especially for longer forecast horizons. Motivated by this observation, Gardner & McKenzie (1985) introduced a parameter that “dampens” the trend to a flat line some time in the future. <mark>Methods that include a damped trend have proven to be very successful, and are arguably the most popular individual methods when forecasts are required automatically for many series.</mark>
+
+In conjunction with the smoothing parameters $\alpha$ and $\beta^*$ (with values between 0 and 1 as in Hold's method), this method also includes a dampeng paramter $0 \le \phi \le 1$<br>
+$\hat{y}_{t+h|t} = \ell_t + (\phi + \phi^2 + ... + \phi^h)b_t$<br>
+$\ell_t = \alpha y_t + (1 - \alpha)(\ell_{t - 1} + \phi b_{t - 1})$<br>
+$b_t = \beta^*(\ell_t - \ell_{t - 1} + (1 - \beta^*) \phi b_{t-1})$<br>
+
+If $\phi = 1$, the method is idential to Holt's method. For values between 0 and 1, $\phi$ dampens the trend so that it approaches a constant some time in the future. In fact, the forecasts converge to: $\ell_t + \phi_{b_T}/(1 - \phi)$ as $h\rightarrow \infty$ for any value $0 \le \phi \le 1$. This means that short term forecasts are trended, while long term forecasts are constant.
+
+In practice, $\phi$ is rarely less than 0.8 as the damping has a very strong effect for smaller values. Values of $\phi$ close to 1 will mean that a damped model is not able to be distinguished from a non-damped model. For these reasons, we usually restrict $\phi$ to a minimum of 0.8 and a maximum of 0.98.
+
+## Example: Australian Population (continued)
+
+Figure 8.4 shows the forecasts for years 2018–2032 generated from Holt’s linear trend method and the damped trend method.
+
+```{r Forecasting annual Australian population (millions) over 2018-2032, phi = 0.90}
+
+aus_economy %>%
+  model(
+    `Holt's method` = ETS(Pop ~ error("A") +
+                       trend("A") + season("N")),
+    `Damped Holt's method` = ETS(Pop ~ error("A") +
+                       trend("Ad", phi = 0.9) + season("N"))
+  ) %>%
+  forecast(h = 15) %>%
+  autoplot(aus_economy, level = NULL) +
+  labs(title = "Australian population",
+       y = "Millions") +
+  guides(colour = guide_legend(title = "Forecast"))
+
+```
+
+## Example: Internet usage
+
+In this example, we compare the forecasting performance of the three exponential smoothing methods that we have considered so far in forecasting the number of users connected to the internet via a server. The data is observed over 100 minutes and is shown in Figure 8.5.
+
+```{r Figure 8.5: Users connected to the internet through a server}
+
+www_usage <- as_tsibble(WWWusage)
+www_usage %>% autoplot(value) +
+  labs(x = "Minute", y = "Number of users",
+       title = "Internet usage per minute")
+
+```
+
+We will use time series cross-validation to compare the one-step forecast accuracy of the three methods.
+
+```{r}
+www_usage %>% 
+  stretch_tsibble(.init = 10) %>% 
+  model(
+    SES = ETS(value ~ error("A") + trend("N") + season("N")),
+    Holt = ETS(value ~ error("A") + trend("A") + season("N")),
+    Damped = ETS(value ~ error("A") + trend("Ad") + season("N"))
+    ) %>% 
+  forecast(h = 1) %>% 
+  accuracy(www_usage)
+
+```
+
+Damped Holt’s method is best whether you compare MAE or RMSE values. So we will proceed with using the damped Holt’s method and apply it to the whole data set to get forecasts for future minutes.
+
+```{r Holt\'s damped error applied to internet usage data set}
+
+fit <- www_usage %>% 
+  model(
+    Damped = ETS(value ~ error("A") + trend("Ad") + season("N"))
+    )
+
+#Estimated parameters
+
+tidy(fit)
+```
+
+The smoothing parameter for the slope is estimated to be almost one, indicating that the trend changes to mostly reflect the slope between the last two minutes of internet usage. The value of $\alpha$ is very close to one, showing that the level reacts strongly to each new observation.
+
+```{r Figure 8.6: Forecasting internet usage: comparing forecasting performance of non-seasonal methods.}
+fit %>% 
+  forecast(h = 10) %>% 
+  autoplot(www_usage) +
+  labs(x = "Minute", y = "Number of users", title = "Internet usage per minute")
+```
+
+## Methods with seasonality
+

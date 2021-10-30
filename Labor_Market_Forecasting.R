@@ -499,14 +499,292 @@ separations_forecast %>%
   guides(colour = guide_legend(title = "Forecast"))
 
 
+########### Statewide Unemployment rate ##########
+
+unemployment <- read.csv('/Users/russellconte/State_unemployment_rate.csv',header = TRUE, sep = ',')
+unemployment <- unemployment %>% pivot_longer(cols = 2:13) %>% 
+  mutate(index = seq(as.Date("2011/1/1"), by = "month", length.out = 132))
+unemployment <- unemployment[1:128, 3:4]
+unemployment$index = yearmonth(unemployment$index)
+unemployment <- as_tsibble(x = unemployment, index = index)
+unemployment <- rename(unemployment, rate_unemployed = value)
+rate_unemployed <- unemployment$rate_unemployed
+autoplot(unemployment) +
+  labs(y = "Unemployment rate by month", title = "Unemployment rate by month")
+
+
+x11_dcmp <- unemployment %>%
+  model(x11 = X_13ARIMA_SEATS(rate_unemployed ~ x11())) %>%
+  components()
+autoplot(x11_dcmp) +
+  labs(title =
+         "Decomposition of rate of unemployment using X-11.")
+
+x11_dcmp %>% 
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = rate_unemployed, colour = "Data")) +
+  geom_line(aes(y = season_adjust,
+                colour = "Seasonally Adjusted")) +
+  geom_line(aes(y = trend, colour = "Trend")) +
+  labs(y = "Unemployment rate",
+       title = "Unemployment rate")
+
+ACF(unemployment, lag_max = 120) %>% 
+  autoplot() +
+  labs(title = "Autocorrelation of unemployment")
+
+TSLM(unemployment ~ trend())
+fit <- unemployment %>%
+  model(trend_model = TSLM(rate_unemployed ~ trend()))
+report(fit)
+
+augment(fit) %>%
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = rate_unemployed, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted")) +
+  labs(y = "Rate of Unemployment",
+       title = "Rate of Unemployment",
+  ) +
+  scale_colour_manual(values=c(Data="black",Fitted="#D55E00")) +
+  guides(colour = guide_legend(title = NULL))
+
+fit %>% gg_tsresiduals()
+
+glance(fit) %>%
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+fit %>% forecast(h = "3 years")
+
+fit %>%
+  forecast(h = "3 years") %>%
+  autoplot(unemployment)
+
+dcmp <- unemployment %>% 
+  model(stl = STL(rate_unemployed))
+components(dcmp) %>% autoplot()
+
+gg_season(data = unemployment, y = rate_unemployed)
+
+components(dcmp) %>%
+  as_tsibble() %>%
+  autoplot(rate_unemployed, colour = "gray") +
+  geom_line(aes(y = season_adjust), colour = "#0072B2")
+
+train <- unemployment %>%
+  filter_index("2011 Jan" ~ "2021 Sep")
+# Fit the models
+unemployment_fit <- train %>%
+  model(
+    Mean = MEAN(rate_unemployed),
+    `Naïve` = NAIVE(rate_unemployed),
+    `Seasonal naïve` = SNAIVE(rate_unemployed)
+  )
+# Generate forecasts for 14 quarters
+unemployed_forecast <- unemployment_fit %>% forecast(h = 14)
+# Plot forecasts against actual values
+unemployed_forecast %>%
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(separations, "2021 Oct" ~ .),
+    colour = "black"
+  ) +
+  labs(
+    y = "Rate of unemployed",
+    title = "Forecasts for rate of unemployment"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+########### Statewide Labor Force Participation rate ##########
+statewide_labor_numbers <- read.csv('/Users/russellconte/Statewide_labor_numbers.csv', header = TRUE)
+labor_force_participation_rate <- statewide_labor_numbers$labor.force.participation.rate.
+labor_force_participation_rate <- data.frame(index, labor_force_participation_rate)
+labor_force_participation_rate <- as_tsibble(labor_force_participation_rate)
+labor_force_participation_rate1 <- labor_force_participation_rate$labor_force_participation_rate
+
+autoplot(labor_force_participation_rate) +
+  labs(y = "Labor force participation rate by month", title = "Labor force participation rate by month")
+
+x11_dcmp <- labor_force_participation_rate %>%
+  model(x11 = X_13ARIMA_SEATS(rate_unemployed ~ x11())) %>%
+  components()
+autoplot(x11_dcmp) +
+  labs(title =
+         "Decomposition of rate of labor_force_participation_rate using X-11.")
+
+x11_dcmp %>% 
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = labor_force_participation_rate, colour = "Data")) +
+  geom_line(aes(y = season_adjust,
+                colour = "Seasonally Adjusted")) +
+  geom_line(aes(y = trend, colour = "Trend")) +
+  labs(y = "Labor force participation rate",
+       title = "Labor force participartion rate")
+
+ACF(labor_force_participation_rate, lag_max = 120) %>% 
+  autoplot() +
+  labs(title = "Autocorrelation of labor_force_participation_rate")
+
+TSLM(labor_force_participation_rate ~ trend())
+fit <- labor_force_participation_rate %>%
+  model(trend_model = TSLM(labor_force_participation_rate ~ trend()))
+report(fit)
+
+augment(fit) %>%
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = labor_force_participation_rate, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted")) +
+  labs(y = "Rate of labor force participation",
+       title = "Rate of labor force participation",
+  ) +
+  scale_colour_manual(values=c(Data="black",Fitted="#D55E00")) +
+  guides(colour = guide_legend(title = NULL))
+
+fit %>% gg_tsresiduals()
+
+glance(fit) %>%
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+fit %>% forecast(h = "3 years")
+
+fit %>%
+  forecast(h = "3 years") %>%
+  autoplot(labor_force_participation_rate)
+
+dcmp <- labor_force_participation_rate %>% 
+  model(stl = STL(rate_unemployed))
+components(dcmp) %>% autoplot()
+
+gg_season(data = labor_force_participation_rate, y = rate_unemployed)
+
+components(dcmp) %>%
+  as_tsibble() %>%
+  autoplot(rate_unemployed, colour = "gray") +
+  geom_line(aes(y = season_adjust), colour = "#0072B2")
+
+train <- labor_force_participation_rate %>%
+  filter_index("2011 Jan" ~ "2021 Sep")
+# Fit the models
+labor_force_participation_rate_fit <- train %>%
+  model(
+    Mean = MEAN(labor_force_participation_rate),
+    `Naïve` = NAIVE(labor_force_participation_rate),
+    `Seasonal naïve` = SNAIVE(labor_force_participation_rate)
+  )
+# Generate forecasts for 14 quarters
+labor_force_participation_rate_forecast <- labor_force_participation_rate_fit %>% forecast(h = 14)
+# Plot forecasts against actual values
+labor_force_participation_rate_forecast %>%
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(labor_force_participation_rate, "2021 Oct" ~ .),
+    colour = "black"
+  ) +
+  labs(
+    y = "Rate of labor force",
+    title = "Forecasts for rate of labor_force_participation_rate"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+########### Statewide employment population ratio ############
+
+########### Statewide Labor Force Participation rate ##########
+statewide_labor_numbers <- read.csv('/Users/russellconte/Statewide_labor_numbers.csv', header = TRUE)
+employment_population_ratio <- statewide_labor_numbers$labor.force.participation.rate.
+employment_population_ratio <- data.frame(index, employment_population_ratio)
+employment_population_ratio <- as_tsibble(employment_population_ratio)
+
+autoplot(employment_population_ratio) +
+  labs(y = "Employment population ratio rate by month", title = "Employment population ratio rate by month")
+
+x11_dcmp <- employment_population_ratio %>%
+  model(x11 = X_13ARIMA_SEATS(employment_population_ratio ~ x11())) %>%
+  components()
+autoplot(x11_dcmp) +
+  labs(title =
+         "Decomposition of rate of employment_population_ratio using X-11.")
+
+x11_dcmp %>% 
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = employment_population_ratio, colour = "Data")) +
+  geom_line(aes(y = season_adjust,
+                colour = "Seasonally Adjusted")) +
+  geom_line(aes(y = trend, colour = "Trend")) +
+  labs(y = "Employment population ratio",
+       title = "Employment population ratio")
+
+ACF(employment_population_ratio, lag_max = 120) %>% 
+  autoplot() +
+  labs(title = "Autocorrelation of employment_population_ratio")
+
+TSLM(employment_population_ratio ~ trend())
+fit <- employment_population_ratio %>%
+  model(trend_model = TSLM(employment_population_ratio ~ trend()))
+report(fit)
+
+augment(fit) %>%
+  ggplot(aes(x = index)) +
+  geom_line(aes(y = employment_population_ratio, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted")) +
+  labs(y = "Rate of employment population participation",
+       title = "Rate of employment population participation",
+  ) +
+  scale_colour_manual(values=c(Data="black",Fitted="#D55E00")) +
+  guides(colour = guide_legend(title = NULL))
+
+fit %>% gg_tsresiduals()
+
+glance(fit) %>%
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+fit %>% forecast(h = "3 years")
+
+fit %>%
+  forecast(h = "3 years") %>%
+  autoplot(employment_population_ratio)
+
+dcmp <- employment_population_ratio %>% 
+  model(stl = STL(employment_population_ratio))
+components(dcmp) %>% autoplot()
+
+gg_season(data = employment_population_ratio, y = rate_unemployed)
+
+components(dcmp) %>%
+  as_tsibble() %>%
+  autoplot(employment_population_ratio, colour = "gray") +
+  geom_line(aes(y = season_adjust), colour = "#0072B2")
+
+train <- employment_population_ratio %>%
+  filter_index("2011 Jan" ~ "2021 Sep")
+# Fit the models
+employment_population_ratio_fit <- train %>%
+  model(
+    Mean = MEAN(employment_population_ratio),
+    `Naïve` = NAIVE(employment_population_ratio),
+    `Seasonal naïve` = SNAIVE(employment_population_ratio)
+  )
+# Generate forecasts for 14 quarters
+employment_population_ratio_forecast <- employment_population_ratio_fit %>% forecast(h = 14)
+# Plot forecasts against actual values
+employment_population_ratio_forecast %>%
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(employment_population_ratio, "2021 Oct" ~ .),
+    colour = "black"
+  ) +
+  labs(
+    y = "Rate of labor force",
+    title = "Forecasts for rate of employment_population_ratio"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
 
 
 ############ Print the results ###################
 
-labor_market_data <- tsibble(index = index, num_openings, num_quits, num_hires, num_layoffs, num_separations)
+#labor_market_data <- tsibble(index = index, num_openings, num_quits, num_hires, num_layoffs, num_separations)
 
 index1 <- as.character(index)
-labor_market_data <- data.frame(index, num_hires, num_layoffs, num_openings, num_quits, num_separations)
+labor_market_data <- data.frame(index, num_hires, num_layoffs, num_openings, num_quits, num_separations, rate_unemployed,
+                                labor_force_participation_rate$labor_force_participation_rate)
 labor_market_data <- as_tsibble(labor_market_data)
 labor_market_data
 
@@ -526,6 +804,8 @@ report(fit_labor_market_data)
 
 fit_labor_market_data %>% gg_tsresiduals()
 
+labor_market_data
+
 # Correlations
 labor_market_data %>% 
   GGally::ggpairs(columns = 2:6) +
@@ -535,20 +815,24 @@ labor_market_data %>%
 
 fit <- labor_market_data %>%
   model(
-    lm = TSLM(num_hires ~ num_layoffs + num_openings + num_quits + num_separations)
+    lm = TSLM(num_hires ~ num_layoffs + num_openings + num_quits + num_separations + rate_unemployed +
+                labor_force_participation_rate)
   )
 
 future_scenarios <- scenarios(
   Increase = new_data(labor_market_data, 12) %>%
-    mutate(num_openings = -1, num_layoffs = 1, num_openings = 1, num_quits = 1, num_separations = 1),
+    mutate(num_openings = -1, num_layoffs = 1, num_openings = 1, num_quits = 1, num_separations = 1, rate_unemployed = -1,
+           labor_force_participation_rate = 1),
   Decrease = new_data(labor_market_data, 12) %>%
-    mutate(num_openings = -10, num_layoffs = 10, num_openings = 10, num_quits = 10, num_separations = 10),
+    mutate(num_openings = -1, num_layoffs = 1, num_openings = 1, num_quits = 1, num_separations = 1, rate_unemployed = 1,
+           labor_force_participation_rate = 1),
   names_to = "Scenario")
 
 forecast1 <- forecast(fit, new_data = future_scenarios)
 
-quits %>%
-  autoplot(num_quits) +
-  autolayer(forecast1)
-  labs(title = "US consumption", y = "% change")
+labor_market_data %>% 
+  autoplot(num_hires) +
+  autolayer(forecast1) +
+  labs(title = "put something here", y = "% change")
+
 
