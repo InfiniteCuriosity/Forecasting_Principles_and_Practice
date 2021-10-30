@@ -308,3 +308,309 @@ fit %>%
 
 ## Methods with seasonality
 
+Holt (1957) and Winters (1960) extended Holt’s method to capture seasonality. The Holt-Winters seasonal method comprises the forecast equation and three smoothing equations — one for the level$\ell_t$one for the trend $b_t$, and one for the seasonal component $s_t$, with corresponding smoothing parameters $\alpha, \beta^* \text{ and } \gamma$. We use $m$to denote the period of the seasonality, i.e., the number of seasons in a year. For example, for quarterly data $m = 4$, and for monthly data $m = 12$.
+
+There are two variations to this method that differ in the nature of the seasonal component. The additive method is preferred when the seasonal variations are roughly constant through the series, while the multiplicative method is preferred when the seasonal variations are changing proportional to the level of the series. With the additive method, the seasonal component is expressed in absolute terms in the scale of the observed series, and in the level equation the series is seasonally adjusted by subtracting the seasonal component. Within each year, the seasonal component will add up to approximately zero. With the multiplicative method, the seasonal component is expressed in relative terms (percentages), and the series is seasonally adjusted by dividing through by the seasonal component. Within each year, the seasonal component will sum up to approximately $m$.
+
+## Holt-Winter's Additive Method
+
+The component form of the additive method is:
+
+$\hat{y}_{t+h|t} = \ell_t + hb_t + s_{t+h+m(k+1)}$<br>
+$\ell_t = \alpha(y_t - s_{t-m}) + (1 - \alpha)(\ell_{t-1} + b_{t-1})$<br>
+$b_t =\beta^*(\ell_t - \ell_{t-1}) + (1 - \beta^*)b_{t-1}$<br>
+$s_t = \gamma(y_t - \ell_{t-1} - b_{t-1}) + (1 - \gamma)s_{t-m}$<br>
+
+where $k$is the integer part of $(h-1)/m$, which ensures that the estimates of the seasonal indices used for forecasting come from the final year of the sample. The level equation shows a weighted average between the seasonally adjusted observation $(y_t - s_{t-m})$  and the non-seasonal forecast $(\ell_{t-1} + b_{t-1})$ for time $t$. The trend equation is identical to Holt’s linear method. The seasonal equation shows a weighted average between the current seasonal index, $(y_t - \ell_{t-1} - b_{t-1})$ , and the seasonal index of the same season last year (i.e., $m$time periods ago).
+
+The equation for the seasonla component is often expressed as:
+
+$s_t = \gamma^*(y_t - \ell_t) + (1 - \gamma^*) s_{t - m}$<br>
+
+If we substitute $\ell_t$ from the smoothing equation for the level of the component form above, we get:
+
+$s_t = \gamma^*(1 - \alpha)(y_t - \ell_{t-1} - b_{t-1}) + [1 - \gamma^*(1 - \alpha)]s_{t-m}$<br>
+
+which is identical to the smoothing equation for the seasonal component we specify here, with $\gamma = \gamma^*(1 - \alpha)$. The usual parameter restriction is $0 \le \gamma^* \le1$ which translates to $0 \le \gamma \le 1 - \alpha$
+
+## Holt-Winter's Multiplicative method
+
+The component form of the multiplicative method is:
+
+$\hat{y}_{t+h|t} = (\ell_t + hb_t)s_{t+h-m(k+1)}$<br>
+$\ell_t = \alpha \frac{y_t}{s_{t-m}} + (1 - \alpha)(\ell_{t - 1} + b_{t-1})$<br>
+$b_t = \beta^*(\ell_t - \ell_{t-1} + (1 - \beta^*))b_{t-1}$<br>
+$s_t = \gamma\frac{y_t}{(\ell_t + b_{t-1})}+ (1 - \gamma)s_{t - m}$<br>
+
+## Example: Domestic overnight trips in Australia
+
+We apply Holt-Winters’ method with both additive and multiplicative seasonality14 to forecast quarterly visitor nights in Australia spent by domestic tourists. Figure 8.7 shows the data from 1998–2017, and the forecasts for 2018–2020. The data show an obvious seasonal pattern, with peaks observed in the March quarter of each year, corresponding to the Australian summer.
+
+```{r Australian domestic tourism}
+
+aus_holidays <- tourism %>% 
+  filter(Purpose == "Holiday") %>% 
+  summarise(Trips = sum(Trips)/1e3)
+
+fit <- aus_holidays %>% 
+  model(
+    additive = ETS(Trips ~ error("A") + trend("A") + season("A")),
+    multiplicative = ETS(Trips ~ error("M") + trend("A") + season("M"))
+  )
+
+fit1<- aus_holidays %>% 
+  model(
+    additive = ETS(Trips ~ error("A") + trend("A") + season("A")))
+
+fit2<- aus_holidays %>% 
+  model(
+    multiplicative = ETS(Trips ~ error("M") + trend("A") + season("M")))
+
+report(fit1)
+report(fit2)
+
+
+forecast2 <- fit %>% forecast(h = "3 years")
+forecast2 %>% autoplot(aus_holidays, level = NULL) +
+  labs(title = "Australian domestic tourism",
+       y = "Overnight trips (millions)") +
+  guides(colour = guide_legend(title = "Forecast"))
+forecast2
+
+```
+
+Table 8.3: Applying Holt-Winters’ method with additive seasonality for forecasting domestic tourism in Australia. Notice that the additive seasonal component sums to approximately zero. The smoothing parameters and initial estimates for the components are $\alpha = 0.260, \beta^* = 0.1646, \gamma = 0.001$ and RMSE = 0.4169 (note that I cannot currently reproduce these results with this data and method of analysis)
+
+|Quarter|time|Observation|Level|Slope|Season|Forecast|
+|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
+||$t$|$y_t$|$\ell_t$|$b_t$|$s_t$|$\hat{y}_{t+1|t}$|
+|1997 Q1|0||||1.5||
+|1997 Q2|1||||-0.3||
+|1997 Q3|2||||-0.7||
+|1997 Q4|3||9.8|0.0|-0.5||
+|1998 Q1|4|11.8|9.9|0.0|1.5|11.3|
+|1998 Q2|5|9.3|9.9|0.0|-0.3|9.7|
+|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|
+|2017 Q1|80|12.4|10.9|0.1|1.5|12.3|
+|2017 Q2|81|10.5|10.9|0.1|-0.3|10.7|
+|2017 Q3|82|10.5|11.0|0.1|-0.7|10.3|
+|2017 Q4|83|11.2|11.3|0.1|-0.5|10.6|
+|$h$||||||$\hat{y}_{T+h|T}$|
+|2018 Q1|1|||||12.9|
+|2018 Q2|2|||||11.2|
+|2018 Q3|3|||||11.0|
+|2018 Q4|4|||||11.2|
+|2019 Q1|5|||||13.4|
+|2019 Q2|6|||||11.7|
+|2019 Q3|7|||||11.5|
+|2019 Q4|8|||||11.7|
+|2020 Q1|9|||||13.9|
+|2020 Q2|10|||||12.2|
+|2020 Q3|11|||||11.9|
+|2020 Q4|12|||||12.2|
+
+Table 8.4: Applying Holt-Winters’ method with multiplicative seasonality for forecasting domestic tourism in Australia. Notice that the multiplicative seasonal component sums to approximately $m = 4$. The smoothing parameters and initial estimates for the components are $\alpha = 0.2337, \beta^* = 0.1360, \gamma = 0.0001$ and RMSE = 0.4112
+
+|Quarter|time|Observation|Level|Slope|Season|Forecast|
+|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
+||$t$|$y_t$|$\ell_t$|$b_t$|$s_t$|$\hat{y}_{t+1|t}$|
+|1997 Q1|0||||1.5||
+|1997 Q2|1||||-0.3||
+|1997 Q3|2||||-0.7||
+|1997 Q4|3||9.8|0.0|-0.5||
+|1998 Q1|4|11.8|9.9|0.0|1.5|11.3|
+|1998 Q2|5|9.3|9.9|0.0|-0.3|9.7|
+|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|•<br>•<br>•<br>|
+|2017 Q1|80|12.4|10.9|0.1|1.5|12.3|
+|2017 Q2|81|10.5|10.9|0.1|-0.3|10.7|
+|2017 Q3|82|10.5|11.0|0.1|-0.7|10.3|
+|2017 Q4|83|11.2|11.3|0.1|-0.5|10.6|
+|$h$||||||$\hat{y}_{T+h|T}$|
+|2018 Q1|1|||||13.3|
+|2018 Q2|2|||||11.2|
+|2018 Q3|3|||||10.8|
+|2018 Q4|4|||||11.1|
+|2019 Q1|5|||||13.8|
+|2019 Q2|6|||||11.7|
+|2019 Q3|7|||||11.3|
+|2019 Q4|8|||||11.6|
+|2020 Q1|9|||||14.4|
+|2020 Q2|10|||||12.2|
+|2020 Q3|11|||||11.7|
+|2020 Q4|12|||||12.1|
+
+The applications of both methods (with additive and multiplicative seasonality) are presented in Tables 8.3 and 8.4 respectively. Because both methods have exactly the same number of parameters to estimate, we can compare the training RMSE from both models. In this case, the method with multiplicative seasonality fits the data slightly better.
+
+The estimated states for both models are plotted in Figure 8.8. The small value of $\gamma$ for the multiplicative model means that the seasonal component hardly changes over time. The small value of $\beta$ means the slope component hardly changes over time (compare the vertical scales of the slope and level components).
+
+```{r}
+components(fit1) %>% 
+  autoplot()
+components(fit2) %>% 
+  autoplot()
+```
+
+
+## Holt-Winters Damped Method
+
+The Holt-Winters method can also be used for daily type of data, where the seasonal period is $m = 7$and the appropriate unit of time for $h$ is in days. Here we forecast pedestrian traffic at a busy Melbourne train station in July 2016.
+
+```{r Figure 8.9: Forecasts of daily pedestrian traffic at the Southern Cross railway station, Melbourne.}
+
+sth_cross_ped <- pedestrian %>% 
+  filter(Date >= "2016-07-01",
+         Sensor == "Southern Cross Station") %>% 
+  index_by(Date) %>% 
+  summarise(Count = sum(Count)/1000)
+
+sth_cross_ped %>% 
+  filter(Date <= "2016-07-31") %>% 
+  model(
+    hw = ETS(Count ~ error("M") + trend("Ad") + season("M"))
+    ) %>% 
+  forecast(h = "2 weeks") %>% 
+  autoplot(sth_cross_ped %>% filter(Date <= "2016-08-14")) +
+  labs(title = "Daily traffic: Southern Cross", y = "Pedestrians ('000)")
+```
+
+Clearly the model has identified the weekly seasonal pattern and the increasing trend at the end of the data, and the forecasts are a close match to the test data.
+
+## 8.4 Taxonomy of exponential smoothing methods
+
+Exponential smoothing methods are not restricted to those we have presented so far. By considering variations in the combinations of the trend and seasonal components, nine exponential smoothing methods are possible, listed in Table 8.5. Each method is labelled by a pair of letters (T,S) defining the type of ‘Trend’ and ‘Seasonal’ components. For example, (A,M) is the method with an additive trend and multiplicative seasonality; ($A_d$ ,N) is the method with damped trend and no seasonality; and so on.
+
+Table 8.5: A two-way classification of exponential smoothing methods
+
+|Trend Component|Seasonal Component|
+|:----|:----|:----|:----|
+||(None)|(Additive)|(Multiplicative)|
+|N (None)|(N,N)|(N,A)|(N,M)|
+|A (Additive)|(A,N)|(A,A)|(A,M)|
+|$A_d$ (Additive damped)|($A_d$,N)|($A_d$,A)|($A_d$,M)|
+
+Some of these methods we have already seen using other names:
+
+|Short hand|Method|
+|:-----:|:-----:|
+|(N,N)|Simple exponential smoothing|
+|(A,N)|Holt's linear method|
+|($A_d$, N)|Additive damped trend method|
+|(A,A)|Additive Holt-Winter's method|
+|(A,M)|Multiplative Holt-Winters Method|
+|($A_d$, M)|Holt-Winters damped method|
+
+## 8.6 Estimation and model Selection
+
+An alternative to estimating the parameters by minimising the sum of squared errors is to maximise the “likelihood.” The likelihood is the probability of the data arising from the specified model. Thus, a large likelihood is associated with a good model. For an additive error model, maximising the likelihood (assuming normally distributed errors) gives the same results as minimising the sum of squared errors. However, different results will be obtained for multiplicative error models. In this section, we will estimate the smoothing parameters $\alpha, \beta, \gamma$ and the intial states $\ell_0, b_0, s_0,s_{-1},...,s_{m+1}$ by maximising the likelihood.
+
+The possible values that the smoothing parameters can take are restricted. Traditionally, the parameters have been constrained to lie between 0 and 1 so that the equations can be interpreted as weighted averages. That is, $0 \lt \alpha, \beta^*, \gamma^*, \phi \lt 1$. For the state space models, we have set $\beta = \alpha \beta^*$ and $\gamma = (1 - \alpha)\gamma^*$. Therefore, the traditional restrictions translate to $0 \lt \alpha \lt 1$, $0 \lt \beta \lt \alpha$ and $0 \lt \gamma \lt 1 - \alpha$. In practice, the damping parameter $\phi$is usually constrained further to prevent numerical difficulties in estimating the model. In the fable package, it is restricted so that $0.8 \lt \phi \lt 0.98$
+
+## Model selection
+
+A great advantage of the ETS statistical framework is that information criteria can be used for model selection. The AIC, $AIC_c$ and BIC, introduced in Section 7.5, can be used here to determine which of the ETS models is most appropriate for a given time series.
+
+For ETS models, Akaike’s Information Criterion (AIC) is defined as
+
+$AIC = -2log(L) + 2k$
+where $L$ is the likelihood of the model and $k$ is the total number of parameters and initial states that have been estimated (including the residual variance).
+
+The AIC corrected for small sample bias $(AIC_c)$ is defined as
+
+$AIC_c = AIC + \frac{2k(k+1)}{T - k - 1}$
+ 
+and the Bayesian Information Criterion (BIC) is
+
+$BIC = AIC + k[log(T) - 2]$
+
+Three of the combinations of (Error, Trend, Seasonal) can lead to numerical difficulties. Specifically, the models that can cause such instabilities are ETS(A,N,M), ETS(A,A,M), and ETS(A,$A_d$ ,M), due to division by values potentially close to zero in the state equations. We normally do not consider these particular combinations when selecting a model.
+
+Models with multiplicative errors are useful when the data are strictly positive, but are not numerically stable when the data contain zeros or negative values. Therefore, multiplicative error models will not be considered if the time series is not strictly positive. In that case, only the six fully additive models will be applied.
+
+## Example: Domestic holiday tourist visitor nights in Australia
+
+We now employ the ETS statistical framework to forecast Australian holiday tourism over the period 2016–2019. We let the `ETS()` function select the model by minimising the $AIC_c$.
+
+```{r Domestic holiday tourist visitor nights in Australia}
+
+aus_holidays <- tourism %>% 
+  filter(Purpose == "Holiday") %>% 
+  summarise(Trips = sum(Trips)/1e3)
+fit <- aus_holidays %>% 
+  model(ETS(Trips))
+report(fit)
+
+```
+
+The model selected is ETS(M, N, A)
+
+$y_t = (\ell_{t-1} + s_{t - m})(1 + \epsilon_t)$<br>
+$\ell_t = \ell_{t - 1} +\alpha(\ell{t - 1} + s_{t -m})\epsilon_t$<br>
+$s_t = s_{t - m} + \gamma(\ell_{t-1} + s_{t-m})\epsilon_t$<br>
+
+The parameters are $\hat{\alpha} = 0.3484$ and $\hat{\gamma} = 0.0001$. the output also returns the estimates for the initial states, $\ell_0, s_0, s_{-1}, s_{-2} and s_{-3}$. Compre these with the values obtained for the Holt-Winters method with additive seasonality presented in table 8.3.
+
+Figure 8.10 shows the states over time, while Figure 8.12 shows point forecasts and prediction intervals generated from the model. The small values of $\gamma$ indicate that the seasonal components change very little over time.
+
+```{r Figure 8.10: Graphical representation of the estimated states over time.}
+components(fit) %>% 
+  autoplot() +
+  labs(title = "ETS(M, N, A components")
+
+```
+
+Because this model has multiplicative errors, the innovation residuals are not equivalent to the regular residuals (i.e., the one-step training errors). The innovation residuals are given by $\hat{\epsilon_t}$ while the regular residuals are defined as $y_t - \hat{y}_{t|t-1}$. We can obtain both using the `augment()` function. They are plotted in Figure 8.11.
+
+```{r}
+augment(fit) %>% 
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = .resid, colour = "Fitted"))
+
+```
+
+```{r}
+augment(fit) %>% 
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = .innov, colour = "Fitted"))
+```
+
+## 8.7 Forecasting methods with ETS
+
+Point forecasts can be obtained from the models by iterating the equations for $t = T + 1,..., T + h$ and setting all $\epsilon_t = 0$ for $t \gt T$.
+
+For example, for model ETS(M, A, N), $y_{T+1} = (\ell_t + b_T)(1 + \epsilon_{T+1})$. Therefore $\hat{y}_{T+1|T} = \ell_T + b_T$. Similarly,
+
+$t_{T+2} = (\ell_{T+1} + b_{T + 1})(1 + \epsilon_{T + 2})$<br>
+$= [(\ell_t + b_t)(1 + \alpha \epsilon_{T + 1}) + b_T + \beta(\ell_t + b_T) \epsilon_{T+1}](1 + \epsilon_{T+2})$<br>
+
+To obtain forecasts from an ETS model, we use the `forecast()` function from the `fable` package. The function will always return the means of the forecast distribution, even when they differ from these traditional point forecasts.
+
+```{r Figure 8.12: Forecasting Australian domestic overnight trips using an ETS(M,N,A) model.}
+
+fit %>% 
+  forecast(h = 8) %>% 
+  autoplot(aus_holidays) +
+  labs(title = "Australian domestic tourism", y = "Overnight trips (millions)")
+
+```
+
+## Prediction intervals
+
+A big advantage of the statistical models is that prediction intervals can also be generated — something that cannot be done using the point forecasting methods alone. The prediction intervals will differ between models with additive and multiplicative methods.
+
+For most ETS models, a prediction interval can be written as
+
+$\hat{y}_{T+h|T} \pm c \sigma_h$<br>
+
+where $c$ depends on the coverage probability, and $\sigma^2$ is the forecast variance. Values for $c$ were given in table 5.1. For ETS models, formulas for $\sigma_h^2$ can be complicated; the details are given in Chapter 6 of Hyndman et al. (2008). In Table 8.8 we give the formulas for the additive ETS models, which are the simplest.
+
+Table 8.8: Forecast variance expressions for each additive state space model, where $\sigma^2$ is the residual variance, $m $is the seasonal period, and $k$ is the integer part of $(h-1) / m$ (i.e., the number of complete years in the forecast period prior to time  $T + h)$.
+
+|Model|Forecast variance: $\sigma_h^2$|
+|:-----:|:-----:|
+|(A,N,N)|$\sigma^2_h = \sigma^2[1 + \alpha^2(h-1)]$|
+|(A, A, N)|$\sigma_h^2 = \sigma^2\Big[1 + (h-1)\big\{\alpha^2 + \alpha\beta h + \frac16\beta^2h(2h-1)\big\}\Big]$|
+|(A, $A_d$, N)|$\sigma_h^2 = \sigma^2\biggl[1 + \alpha^2(h-1) + \frac{\beta\phi h}{(1-\phi)^2} \left\{2\alpha(1-\phi) +\beta\phi\right\}$|
+|(A, N, A)| $\sigma_h^2 = \sigma^2[1 + \alpha^2](h-1) + \gamma k (2 \alpha + \gamma)$|
+|(A, A, A)|$\sigma_h^2 = \sigma^2 [1 + (h-1)] \left\{ \alpha^2 + \alpha\beta h + \frac{1}{6}\beta^2 h (2h-1) \right\} + \gamma k \left\{ 2\alpha + \gamma + \beta m(k+1) \right\}$|
+
+Conclusion of chapter 8. Wow!
