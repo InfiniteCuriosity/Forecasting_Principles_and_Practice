@@ -25,6 +25,9 @@ As well as the time plot of the data, the ACF plot is also useful for identifyin
 
 ```{r Figure 9.2: The ACF of the Google closing stock price in 2015 (left) and of the daily changes in Google closing stock price in 2015 (right).}
 
+library(tidyverse)
+library(fpp3)
+
 google_stock <- gafa_stock %>%
   filter(Symbol == "GOOG", year(Date) >= 2015) %>%
   mutate(day = row_number()) %>%
@@ -253,4 +256,43 @@ We normally restrict autoregressive models to stationary data, in which case som
 When $p \geq3$, the restrictions are much more complicated. The `fable` package takes care of these restrictions when estimating a model.
 
 ## 9.4 The moving average models
+
+Rather than using past values of the forecast variable in a regression, a moving average model uses past forecast errors in a regression-like model,
+
+$y_t = c + \epsilon_t + \theta_1 \epsilon_{t-1} +\theta_2 \epsilon_{t-2} +\theta_q \epsilon_{t-q}$
+
+where $\epsilon_t$ is white noise. We refer to this as an <b>MA(q) model</b>, a moving average model of order $q$. Of course, we do not <i>observe</i> the value of $\epsilon_t$, so it is not really a regression in the usual sense.
+
+Notice that each value of $y_t$ can be thought of as a weighted moving average of the past few forecast errors (although the coefficients will not normally sum to one). However, moving average models should not be confused with the moving average smoothing we discussed in Chapter 3. A moving average model is used for forecasting future values, while moving average smoothing is used for estimating the trend-cycle of past values.
+
+Figure 9.6 shows some data from an MA(1) model and an MA(2) model. Changing the parameters $\theta_1,...,\theta_q$ results in different time series patterns. As with autoregressive models, the variance of the error term $\epsilon_t$ will only change the scale of the series, not the patterns.
+
+It is possible to write any stationary AR($p$) model as an MA($\infty$) model. For example, using repeated substitution, we can demonstrate this for an AR(1) model:
+
+$y_t = \phi y_{t-1} + \epsilon_t$<br>
+$\phi_1(\phi_1 y_{t-2} + \epsilon_{t-1}) + \epsilon_t$<br>
+$\phi_1^2 y_{t-2} + \phi \epsilon_{t-1} + \epsilon_t$<br>
+$\phi_1^3 y_{t-3} + \phi^2 \epsilon_{t-2} + \phi_1\epsilon_{t-1} + \epsilon_t$<br>
+etc.
+
+Provided $-1 \lt \phi_1 \lt 1$ the value of $\phi_1^k$ will get smaller as $k$ gets larger. So eventually we obtain:
+
+$y_t = \epsilon_t + \phi_1 \epsilon_{t-1} + \phi_1^2 \epsilon_{t-2} + \phi_1^3 \epsilon_{t-3} + ...,$
+
+am MA($\infty$) process.
+
+The reverse result holds if we impose some constraints on the MA parameters. Then the MA model is called invertible. That is, we can write any invertible MA($q$) process as an AR($\infty$) process. Invertible models are not simply introduced to enable us to convert from MA models to AR models. They also have some desirable mathematical properties.
+
+For example, consider the MA(1) process, $y_t = \epsilon_t + \theta_1 \epsilon_{t-1}$. In its AR($\infty$) representation, the most recent error can be written as a linear function of current and past observations:
+
+$\epsilon_t = \sum_{j=0}^\infty (-\theta_1)^j y_{t-j}$
+
+When $\left| \theta_1 \right|\gt 1$, he weights increase as lags increase, so the more distant the observations the greater their influence on the current error. When $\left| \theta_1 \right| = 1$ the weights are constant in size, and the distant observations have the same influence as the recent observations. As neither of these situations make much sense, we require $\left| \theta_1 \right| \lt 1$ so the most recent observations have higher weight than observations from the more distant past. Thus, the process is invertible when $\left| \theta_1 \right| \lt 1$.
+
+The invertaibility constraints for other models are similar to the stationarity constraints.
+
+•For an MA(1) model: $-1 \lt \theta_1 \lt 1$<br>
+•For an MA(2) model: $-1 \lt \theta_2 \lt 1, \theta_2 + \theta_1 \gt -1, \theta_1 - \theta_2 \lt 1$<br>
+
+More complicated conditions hold for $q \ge 3$. Again, the `fable` package will take care of these constraints when estimating the models.
 
