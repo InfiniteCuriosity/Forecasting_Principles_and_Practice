@@ -296,3 +296,38 @@ The invertaibility constraints for other models are similar to the stationarity 
 
 More complicated conditions hold for $q \ge 3$. Again, the `fable` package will take care of these constraints when estimating the models.
 
+# 9.5 Non-seasonal ARIMA models
+
+If we combine differencing with autoregression and a moving average model, we obtain a non-seasonal ARIMA model. ARIMA is an acronym for AutoRegressive Integrated Moving Average (in this context, “integration” is the reverse of differencing). The full model can be written as
+
+$y_t^{'} = c + \phi_1y_{t-1}^{'}+...+\phi_py_{t-p}^{'} + \theta_1\epsilon_{t-1} + ... +\theta_q\epsilon_{t-q} + \epsilon_t$<br>
+
+where $y'_{t}$ is the differenced series (it may have been differenced more than once). The “predictors” on the right hand side include both lagged values of $y_t$ and lagged errors. We cal this an <b>ARIMA(p, d, q) model</b> where
+
+||
+|:-----:|
+|$p$ = the order of the autoregressive part|
+|$d$ = degree of the first differencing involved|
+|$p$ = order of the moving average part|
+
+The same stationarity and invertibility conditions that are used for autoregressive and moving average models also apply to an ARIMA model.
+
+Many of the models we have already discussed are special cases of the ARIMA model, as shown in Table 9.1.
+
+<center>Table 9.1: Special cases of ARIMA models.</center>
+|||
+|:-----:|:-----:|
+|White noise|ARIMA(0,0,0) with no constant|
+|Random walk|ARIMA(0,1,0) with no constant|
+|Random walk with drift|ARIMA(0,1,0) with a constant|
+|Autoregression|ARIMA($p$,0,0)|
+|Moving average|ARIMA(0,0,$q$)|
+
+Once we start combining components in this way to form more complicated models, it is much easier to work with the backshift notation. For example, Equation (9.1) can be written in backshift notation as
+
+$(1 - \phi_1B - \cdots - \phi_pB^p) \quad (1-B)^d y_t \quad= \quad c +(1 + \theta_1B + \cdots + \theta_qB^q) \epsilon_t$
+
+$\qquad \qquad \uparrow \qquad \qquad \qquad  \quad \uparrow \qquad \qquad \qquad \quad \qquad \uparrow$
+
+$\qquad \quad AR(p) \qquad \qquad \text{d-differences} \qquad \qquad \qquad MA(q)$
+

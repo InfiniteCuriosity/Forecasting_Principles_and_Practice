@@ -368,7 +368,76 @@ aus_total_retail %&gt;%
 </div>
 <div id="the-moving-average-models" class="section level2">
 <h2>9.4 The moving average models</h2>
+<p>Rather than using past values of the forecast variable in a regression, a moving average model uses past forecast errors in a regression-like model,</p>
+<p><span class="math inline">\(y_t = c + \epsilon_t + \theta_1 \epsilon_{t-1} +\theta_2 \epsilon_{t-2} +\theta_q \epsilon_{t-q}\)</span></p>
+<p>where <span class="math inline">\(\epsilon_t\)</span> is white noise. We refer to this as an <b>MA(q) model</b>, a moving average model of order <span class="math inline">\(q\)</span>. Of course, we do not <i>observe</i> the value of <span class="math inline">\(\epsilon_t\)</span>, so it is not really a regression in the usual sense.</p>
+<p>Notice that each value of <span class="math inline">\(y_t\)</span> can be thought of as a weighted moving average of the past few forecast errors (although the coefficients will not normally sum to one). However, moving average models should not be confused with the moving average smoothing we discussed in Chapter 3. A moving average model is used for forecasting future values, while moving average smoothing is used for estimating the trend-cycle of past values.</p>
+<p>Figure 9.6 shows some data from an MA(1) model and an MA(2) model. Changing the parameters <span class="math inline">\(\theta_1,...,\theta_q\)</span> results in different time series patterns. As with autoregressive models, the variance of the error term <span class="math inline">\(\epsilon_t\)</span> will only change the scale of the series, not the patterns.</p>
+<p>It is possible to write any stationary AR(<span class="math inline">\(p\)</span>) model as an MA(<span class="math inline">\(\infty\)</span>) model. For example, using repeated substitution, we can demonstrate this for an AR(1) model:</p>
+<p><span class="math inline">\(y_t = \phi y_{t-1} + \epsilon_t\)</span><br> <span class="math inline">\(\phi_1(\phi_1 y_{t-2} + \epsilon_{t-1}) + \epsilon_t\)</span><br> <span class="math inline">\(\phi_1^2 y_{t-2} + \phi \epsilon_{t-1} + \epsilon_t\)</span><br> <span class="math inline">\(\phi_1^3 y_{t-3} + \phi^2 \epsilon_{t-2} + \phi_1\epsilon_{t-1} + \epsilon_t\)</span><br> etc.</p>
+<p>Provided <span class="math inline">\(-1 \lt \phi_1 \lt 1\)</span> the value of <span class="math inline">\(\phi_1^k\)</span> will get smaller as <span class="math inline">\(k\)</span> gets larger. So eventually we obtain:</p>
+<p><span class="math inline">\(y_t = \epsilon_t + \phi_1 \epsilon_{t-1} + \phi_1^2 \epsilon_{t-2} + \phi_1^3 \epsilon_{t-3} + ...,\)</span></p>
+<p>am MA(<span class="math inline">\(\infty\)</span>) process.</p>
+<p>The reverse result holds if we impose some constraints on the MA parameters. Then the MA model is called invertible. That is, we can write any invertible MA(<span class="math inline">\(q\)</span>) process as an AR(<span class="math inline">\(\infty\)</span>) process. Invertible models are not simply introduced to enable us to convert from MA models to AR models. They also have some desirable mathematical properties.</p>
+<p>For example, consider the MA(1) process, <span class="math inline">\(y_t = \epsilon_t + \theta_1 \epsilon_{t-1}\)</span>. In its AR(<span class="math inline">\(\infty\)</span>) representation, the most recent error can be written as a linear function of current and past observations:</p>
+<p><span class="math inline">\(\epsilon_t = \sum_{j=0}^\infty (-\theta_1)^j y_{t-j}\)</span></p>
+<p>When <span class="math inline">\(\left| \theta_1 \right|\gt 1\)</span>, he weights increase as lags increase, so the more distant the observations the greater their influence on the current error. When <span class="math inline">\(\left| \theta_1 \right| = 1\)</span> the weights are constant in size, and the distant observations have the same influence as the recent observations. As neither of these situations make much sense, we require <span class="math inline">\(\left| \theta_1 \right| \lt 1\)</span> so the most recent observations have higher weight than observations from the more distant past. Thus, the process is invertible when <span class="math inline">\(\left| \theta_1 \right| \lt 1\)</span>.</p>
+<p>The invertaibility constraints for other models are similar to the stationarity constraints.</p>
+<p>•For an MA(1) model: <span class="math inline">\(-1 \lt \theta_1 \lt 1\)</span><br> •For an MA(2) model: <span class="math inline">\(-1 \lt \theta_2 \lt 1, \theta_2 + \theta_1 \gt -1, \theta_1 - \theta_2 \lt 1\)</span><br></p>
+<p>More complicated conditions hold for <span class="math inline">\(q \ge 3\)</span>. Again, the <code>fable</code> package will take care of these constraints when estimating the models.</p>
 </div>
+</div>
+<div id="non-seasonal-arima-models" class="section level1">
+<h1>9.5 Non-seasonal ARIMA models</h1>
+<p>If we combine differencing with autoregression and a moving average model, we obtain a non-seasonal ARIMA model. ARIMA is an acronym for AutoRegressive Integrated Moving Average (in this context, “integration” is the reverse of differencing). The full model can be written as</p>
+<p><span class="math inline">\(y_t^{&#39;} = c + \phi_1y_{t-1}^{&#39;}+...+\phi_py_{t-p}^{&#39;} + \theta_1\epsilon_{t-1} + ... +\theta_q\epsilon_{t-q} + \epsilon_t\)</span><br></p>
+<p>where <span class="math inline">\(y&#39;_{t}\)</span> is the differenced series (it may have been differenced more than once). The “predictors” on the right hand side include both lagged values of <span class="math inline">\(y_t\)</span> and lagged errors. We cal this an <b>ARIMA(p, d, q) model</b> where</p>
+<table>
+<tbody>
+<tr class="odd">
+<td align="center"><span class="math inline">\(p\)</span> = the order of the autoregressive part</td>
+</tr>
+<tr class="even">
+<td align="center"><span class="math inline">\(d\)</span> = degree of the first differencing involved</td>
+</tr>
+<tr class="odd">
+<td align="center"><span class="math inline">\(p\)</span> = order of the moving average part</td>
+</tr>
+</tbody>
+</table>
+<p>The same stationarity and invertibility conditions that are used for autoregressive and moving average models also apply to an ARIMA model.</p>
+<p>Many of the models we have already discussed are special cases of the ARIMA model, as shown in Table 9.1.</p>
+<center>
+Table 9.1: Special cases of ARIMA models.
+</center>
+<table>
+<tbody>
+<tr class="odd">
+<td align="center">White noise</td>
+<td align="center">ARIMA(0,0,0) with no constant</td>
+</tr>
+<tr class="even">
+<td align="center">Random walk</td>
+<td align="center">ARIMA(0,1,0) with no constant</td>
+</tr>
+<tr class="odd">
+<td align="center">Random walk with drift</td>
+<td align="center">ARIMA(0,1,0) with a constant</td>
+</tr>
+<tr class="even">
+<td align="center">Autoregression</td>
+<td align="center">ARIMA(<span class="math inline">\(p\)</span>,0,0)</td>
+</tr>
+<tr class="odd">
+<td align="center">Moving average</td>
+<td align="center">ARIMA(0,0,<span class="math inline">\(q\)</span>)</td>
+</tr>
+</tbody>
+</table>
+<p>Once we start combining components in this way to form more complicated models, it is much easier to work with the backshift notation. For example, Equation (9.1) can be written in backshift notation as</p>
+<p><span class="math inline">\((1 - \phi_1B - \cdots - \phi_pB^p) \quad (1-B)^d y_t \quad= \quad c +(1 + \theta_1B + \cdots + \theta_qB^q) \epsilon_t\)</span></p>
+<p><span class="math inline">\(\qquad \qquad \uparrow \qquad \qquad \qquad \quad \uparrow \qquad \qquad \qquad \quad \qquad \uparrow\)</span></p>
+<p><span class="math inline">\(\qquad \quad AR(p) \qquad \qquad \text{d-differences} \qquad \qquad \qquad MA(q)\)</span></p>
 </div>
 
 
