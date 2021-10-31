@@ -558,7 +558,28 @@ report(fit2)</code></pre>
 </h4>
 <p>Good models are obtained by minimising the AIC, AICc or BIC. Our preference is to use the AICc.</p>
 <p>It is important to note that these information criteria tend not to be good guides to selecting the appropriate order of differencing (<span class="math inline">\(d\)</span>) of a model, but only for selecting the values of <span class="math inline">\(p\)</span> and <span class="math inline">\(q\)</span>. This is because the differencing changes the data on which the likelihood is computed, making the AIC values between models with different orders of differencing not comparable. So we need to use some other approach to choose <span class="math inline">\(d\)</span>, and then we can use the AICc to select <span class="math inline">\(p\)</span> and <span class="math inline">\(q\)</span>.</p>
+<p>Completion through section 9.6</p>
+<p>#9.7 ARIMA modelling in <code>fable</code></p>
 </div>
+<div id="how-does-arima-work" class="section level3">
+<h3>How does <code>ARIMA()</code> work?</h3>
+<p>The <code>ARIMA()</code> model in the <code>fable</code> package uses a variation of the Hyndma = Khandakar algorighm (Hyndman &amp; Khandakar, 2008), whic combines unit root tests, minimisation of AICc and MLE to obtain an ARIMA model. The arguemnts to <code>ARIMA()</code> provide for many variations on the algorithm What is described here is the defaul behavior.</p>
+<p><b>Hundmak-Khandakar Algorithm for automatic ARIMA modelling|<br></b> 1. The number of differences <span class="math inline">\(0 \le d \le 2\)</span> is determined using repeated KPSS tests<br> 2. The values of <span class="math inline">\(p\)</span> and <span class="math inline">\(q\)</span> are then chosen by mimising the AICc after differencing the data <span class="math inline">\(s\)</span> times. Rather than considering every possible combination of <span class="math inline">\(p\)</span> and <span class="math inline">\(q\)</span>, the algorithm uses a stepwise search to traverse the model space.<br> <span class="math inline">\(\qquad\)</span> a. Four initial models are fitted:<br> <span class="math inline">\(\qquad \qquad\)</span> ARIMA(0, d, 0)<br> <span class="math inline">\(\qquad \qquad\)</span> ARIMA(2, d, 2)<br> <span class="math inline">\(\qquad \qquad\)</span> ARIMA(1, d, 0)<br> <span class="math inline">\(\qquad \qquad\)</span> ARIMA(0, d, 1)<br> A constant is included unless:<br> d = 2. If<br> <span class="math inline">\(d \le 1\)</span>, an additional model is also fitted:<br> <span class="math inline">\(\qquad \qquad\)</span> ARIMA(0, d, 0) without a constant<br> b. The best model (with the smallest AICc value) fitted in step (a) is set to be the “current model” <br><br> c. Variations on the current model are considered:<br> vary <span class="math inline">\(p\)</span> and/or <span class="math inline">\(q\)</span> from the current model by <span class="math inline">\(\pm 1\)</span>; include/exclude <span class="math inline">\(c\)</span> from the current model. The best model considered so far (either the current model or one of these variations) becomes the new current model. <br><br> d. Repeat Step 2(c) until no lower AICc can be found</p>
+</div>
+</div>
+<div id="modelling-procedure" class="section level2">
+<h2>Modelling procedure</h2>
+<p>When fitting an ARIMA model to a set of (non-seasonal) time series data, the following procedure provides a useful general approach.</p>
+<ol style="list-style-type: decimal">
+<li>Plot the data and identify any unusual observations.<br></li>
+<li>If necessary, transform the data (using a Box-Cox transformation) to stabilise the variance.<br></li>
+<li>If the data are non-stationary, take first differences of the data until the data are stationary.<br></li>
+<li>Examine the ACF/PACF: Is an ARIMA(<span class="math inline">\(p, d, 0\)</span>) or an ARIMA(<span class="math inline">\(0, d,q\)</span>) model appropriate?<br></li>
+<li>Try your chosen model(s), and use the AICc to search for a better model.<br></li>
+<li>Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.<br></li>
+<li>Once the residuals look like white noise, calculate forecasts.</li>
+</ol>
+<p>The Hyndman-Khandakar algorithm only takes care of steps 3–5. So even if you use it, you will still need to take care of the other steps yourself.</p>
 </div>
 </div>
 
