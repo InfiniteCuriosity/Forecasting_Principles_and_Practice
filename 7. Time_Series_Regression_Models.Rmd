@@ -224,8 +224,8 @@ The standard error will be used when generating prediction intervals, discussed 
 
 The differences between the observed y values and the corresponding fitted ^y values are the training-set errors or “residuals” defined as:
 
-$ e_t = y_t - \hat{y_t}$
-$\text{   } = y_t - \hat{\beta_1{x_{1,t}}} - \hat{\beta_2{x_{2,t}}} - ... - \hat{\beta_k{x_{k,t}}}$
+$e_t = y_t - \hat{y_t}$<br>
+$\text{   } = y_t - \hat{\beta_1}{x_{1,t}} - \hat{\beta_2}{x_{2,t}} - ... - \hat{\beta_k}{x_{k,t}}$<br>
 
 for $t = 1,...T.$ Each residual is the unpredictable component of the associated observation.
 
